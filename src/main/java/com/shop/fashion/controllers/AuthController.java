@@ -30,10 +30,21 @@ public class AuthController {
     @PostMapping("/signup/email")
     public ResponseEntity<ApiRes<Void>> RegisterUserByEmail(@Valid @RequestBody UserSignupByEmail userSignupByEmail)
             throws IOException {
-        authService.SignUpUserByEmail(userSignupByEmail);
+        authService.signUpUserByEmailignUpUserByEmail(userSignupByEmail);
 
         return ResponseEntity.ok().body(
                 ApiRes.<Void>builder().code(1000)
                         .message("Please check email to complete your registration").build());
+    }
+
+    @GetMapping("/email/confirm")
+    public ResponseEntity<ApiRes<Void>> completeSignupEmail(
+            @NotNull(message = "Token cannot be null") @RequestParam(value = "token") String token) {
+        authService.completeSignupEmail(token);
+        return ResponseEntity.ok().body(
+                ApiRes.<Void>builder().code(1000)
+                        .message("Register successfully. Login to experience the service")
+                        .build());
+
     }
 }

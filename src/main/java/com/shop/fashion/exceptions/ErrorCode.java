@@ -11,6 +11,8 @@ public enum ErrorCode {
     INVALIDTE_FIELD(1022, "Field wrong syntax", HttpStatus.BAD_REQUEST),
     DONT_HAVE_PERMISSION(1035, "Don't have permission", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(9999, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),
+    TOKEN_EXPIRED(1009, "Token expired", HttpStatus.BAD_REQUEST),
+
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xác Nhận Đăng Ký</title>
+    <style>
+      .content {
+        font-family: Arial, sans-serif;
+      }
+      .header {
+        text-align: center;
+      }
+      .body {
+        padding: 20px;
+      }
+      .button a {
+        display: inline-block;
+        padding: 10px 20px;
+        color: white;
+        background-color: #007bff;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 20px;
+        color: #777;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <div class="header">
+        <img src="https://yourlogo.com/logo.png" alt="Your Company Logo" />
+        <h1>Xác Nhận Đăng Ký</h1>
+      </div>
+      <div class="body">
+        <h2>Chào ${Tên người dùng},</h2>
+        <p>
+          Cảm ơn bạn đã đăng ký tại ${Tên Công Ty}. Vui lòng nhấp vào nút bên
+          dưới để xác nhận địa chỉ email của bạn:
+        </p>
+        <div class="button">
+          <a href="${Link xác nhận}">Xác Nhận Email</a>
+        </div>
+        <p>
+          Nếu bạn không đăng ký tài khoản tại ${Tên Công Ty}, bạn có thể bỏ qua
+          email này.
+        </p>
+        <p>Trân trọng,</p>
+        <p>Đội ngũ ${Tên Công Ty}</p>
+      </div>
+      <div class="footer">
+        <p>&copy; ${Năm hiện tại} ${Tên Công Ty}. All rights reserved.</p>
+        <p>[Địa chỉ công ty]</p>
+      </div>
+    </div>
+  </body>
+</html>
