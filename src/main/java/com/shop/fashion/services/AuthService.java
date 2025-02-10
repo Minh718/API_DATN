@@ -4,23 +4,28 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.shop.fashion.constants.RoleUser;
 import com.shop.fashion.dtos.EmailDetailDto;
+import com.shop.fashion.dtos.dtosReq.UserSignin;
 import com.shop.fashion.dtos.dtosReq.UserSignupByEmail;
+import com.shop.fashion.dtos.dtosRes.UserInfoToken;
 import com.shop.fashion.entities.Cart;
 import com.shop.fashion.entities.Role;
 import com.shop.fashion.entities.User;
 import com.shop.fashion.exceptions.CustomException;
 import com.shop.fashion.exceptions.ErrorCode;
+import com.shop.fashion.mappers.UserMapper;
 import com.shop.fashion.repositories.RoleRepository;
 import com.shop.fashion.repositories.UserRepository;
 import com.shop.fashion.utils.KeyGenerator;
 
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.NonFinal;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +35,20 @@ public class AuthService {
     private final RedisService redisService;
     private final TemplateService templateService;
     private final MailService mailService;
+    private final JwtService jwtService;
     private final RoleRepository roleRepository;
+
+    @NonFinal
+    @Value("${security.jwt.expiration-time-access}")
+    long expAccessToken;
+
+    @NonFinal
+    @Value("${security.jwt.expiration-time-refresh}")
+    long expRefreshToken;
+
+    @NonFinal
+    @Value("${security.jwt.refresh-key}")
+    String refreshKey;
 
     public void signUpUserByEmail(UserSignupByEmail userSignupByEmail) throws IOException {
         // Check if user already exists
@@ -79,5 +97,24 @@ public class AuthService {
             // voucherService.addVouchersToNewUser(user);
         } else
             throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+    }
+
+    public UserInfoToken userLoginbyUsername(UserSignin userLogin) {
+        User user = userRepository.findByEmailOrPhone(userLogin.getUsername())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_EXISTED));
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        boolean authenticated = passwordEncoder.matches(userLogin.getPassword(), user.getPassword());
+        if (!authenticated)
+            throw new CustomException(ErrorCode.UNAUTHENTICATED);
+        redisService.setKeyInMilliseconds("keyToken:" + user.getId(), user.getKeyToken(), expRefreshToken);
+        redisService.addLoyalUser(user.getId());
+        return AttachInfoUserWithToken(user);
+    }
+
+    private UserInfoToken AttachInfoUserWithToken(User user) {
+        UserInfoToken userInfo = UserMapper.INSTANCE.toUserInfoToken(user);
+        userInfo.setAccessToken(jwtService.generateToken(user, user.getKeyToken(), expAccessToken));
+        userInfo.setRefreshToken(jwtService.generateToken(user, refreshKey, expRefreshToken));
+        return userInfo;
     }
 }

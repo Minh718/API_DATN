@@ -12,6 +12,9 @@ public enum ErrorCode {
     DONT_HAVE_PERMISSION(1035, "Don't have permission", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(9999, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),
     TOKEN_EXPIRED(1009, "Token expired", HttpStatus.BAD_REQUEST),
+    USER_NOT_EXISTED(1005, "User not existed", HttpStatus.NOT_FOUND),
+    UNAUTHENTICATED(1006, "Unauthenticated", HttpStatus.UNAUTHORIZED),
+    INVALID_TOKEN(1009, "Error Token", HttpStatus.UNAUTHORIZED),
 
     ;
 
