@@ -59,4 +59,14 @@ public class AuthController {
                                 .build();
                 return ResponseEntity.ok().body(res);
         }
+
+        @PostMapping("/signin/google")
+        public ApiRes<UserInfoToken> userLoginByGoogle(
+                        @NotNull(message = "code is requried") @RequestParam() String code) {
+                return ApiRes.<UserInfoToken>builder()
+                                .code(1000)
+                                .message("Signin by google successfully")
+                                .result(authService.userLoginByGoogle(code))
+                                .build();
+        }
 }

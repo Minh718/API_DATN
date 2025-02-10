@@ -11,8 +11,11 @@ import org.springframework.stereotype.Service;
 
 import com.shop.fashion.constants.RoleUser;
 import com.shop.fashion.dtos.EmailDetailDto;
+import com.shop.fashion.dtos.dtosReq.GetTokenGoogleReq;
 import com.shop.fashion.dtos.dtosReq.UserSignin;
 import com.shop.fashion.dtos.dtosReq.UserSignupByEmail;
+import com.shop.fashion.dtos.dtosRes.GetTokenGoogleRes;
+import com.shop.fashion.dtos.dtosRes.OutBoundInfoUser;
 import com.shop.fashion.dtos.dtosRes.UserInfoToken;
 import com.shop.fashion.entities.Cart;
 import com.shop.fashion.entities.Role;
@@ -22,6 +25,8 @@ import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.UserMapper;
 import com.shop.fashion.repositories.RoleRepository;
 import com.shop.fashion.repositories.UserRepository;
+import com.shop.fashion.repositories.httpClient.OutboundIdentityClientGoogle;
+import com.shop.fashion.repositories.httpClient.OutboundInfoUserGoogle;
 import com.shop.fashion.utils.KeyGenerator;
 
 import lombok.RequiredArgsConstructor;
@@ -37,6 +42,8 @@ public class AuthService {
     private final MailService mailService;
     private final JwtService jwtService;
     private final RoleRepository roleRepository;
+    OutboundInfoUserGoogle outboundInfoUserGoogle;
+    OutboundIdentityClientGoogle outboundIdentityClientGoogle;
 
     @NonFinal
     @Value("${security.jwt.expiration-time-access}")
@@ -49,6 +56,25 @@ public class AuthService {
     @NonFinal
     @Value("${security.jwt.refresh-key}")
     String refreshKey;
+
+    @NonFinal
+    @Value("${auth.google.client-id}")
+    String CLIENT_ID;
+
+    @NonFinal
+    @Value("${frontend.host}")
+    String FRONT_END;
+
+    @NonFinal
+    @Value("${auth.google.client-secret}")
+    String CLIENT_SECRET;
+
+    @NonFinal
+    @Value("${auth.google.redirect-uri}")
+    String REDIRECT_URI;
+
+    @NonFinal
+    String GRANT_TYPE = "authorization_code";
 
     public void signUpUserByEmail(UserSignupByEmail userSignupByEmail) throws IOException {
         // Check if user already exists
@@ -116,5 +142,39 @@ public class AuthService {
         userInfo.setAccessToken(jwtService.generateToken(user, user.getKeyToken(), expAccessToken));
         userInfo.setRefreshToken(jwtService.generateToken(user, refreshKey, expRefreshToken));
         return userInfo;
+    }
+
+    public UserInfoToken userLoginByGoogle(String code) {
+        GetTokenGoogleReq getTokenGoogleReq = GetTokenGoogleReq.builder()
+                .code(code)
+                .clientId(CLIENT_ID)
+                .clientSecret(CLIENT_SECRET)
+                .redirectUri(FRONT_END + REDIRECT_URI)
+                .grantType(GRANT_TYPE)
+                .build();
+        GetTokenGoogleRes getTokenGoogleRes = outboundIdentityClientGoogle.getToken(
+                getTokenGoogleReq);
+        OutBoundInfoUser infoUser = outboundInfoUserGoogle.getInfoUser("json", getTokenGoogleRes.getAccessToken());
+        User user = userRepository.findByidUserGoogle(infoUser.id()).orElseGet(() -> {
+            User newUser = User.builder()
+                    .idUserGoogle(infoUser.id())
+                    .name(infoUser.name())
+                    .picture(infoUser.picture())
+                    // .typeLogin(TypeLogin.OAUTH2)
+                    .isactive(true)
+                    .build();
+            HashSet<Role> roles = new HashSet<>();
+            roleRepository.findById(RoleUser.USER_ROLE).ifPresent(roles::add);
+            newUser.setRoles(roles);
+            newUser.setKeyToken(KeyGenerator.generateRandomKey());
+            Cart cart = new Cart();
+            newUser.setCart(cart);
+            userRepository.save(newUser);
+            // addChatBoxForUser(newUser.getId());
+            return newUser;
+        });
+        redisService.setKeyInMilliseconds("keyToken:" + user.getId(), user.getKeyToken(), expRefreshToken);
+        redisService.addLoyalUser(user.getId());
+        return AttachInfoUserWithToken(user);
     }
 }
