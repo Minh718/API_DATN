@@ -16,8 +16,9 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     INVALID_TOKEN(1009, "Error Token", HttpStatus.UNAUTHORIZED),
     INVALID_REQUEST(1042, "Invalid request", HttpStatus.BAD_REQUEST),
-    USER_NOT_EXISTED(1005, "User not existed", HttpStatus.NOT_FOUND),
-
+    SUBCATEGORY_NOT_EXISTED(1021, "Subcategory not existed", HttpStatus.NOT_FOUND),
+    BRAND_NOT_EXISTED(1041, "Brand not existed", HttpStatus.NOT_FOUND),
+    PRODUCT_NOT_EXISTED(1013, "Product not existed", HttpStatus.NOT_FOUND),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
