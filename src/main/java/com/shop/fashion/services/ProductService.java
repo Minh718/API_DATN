@@ -129,4 +129,12 @@ public class ProductService {
                 .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_EXISTED));
         productRepository.delete(product);
     }
+
+    public Page<ProductDTO> getDraftProducts(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Product> products = productRepository.findAllByIsDraftOrderByCreatedDateDesc(true,
+                pageable);
+        Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
+        return productDTOs;
+    }
 }

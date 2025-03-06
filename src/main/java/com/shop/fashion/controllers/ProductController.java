@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.shop.fashion.dtos.dtosReq.ProductAddDTO;
+import com.shop.fashion.dtos.dtosRes.ApiMetaRes;
 import com.shop.fashion.dtos.dtosRes.ApiRes;
+import com.shop.fashion.dtos.dtosRes.MetadataDTO;
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
 import com.shop.fashion.services.ProductService;
 
@@ -60,5 +62,22 @@ public class ProductController {
                 .code(1000)
                 .message("delete sản phẩm thành công")
                 .build());
+    }
+
+    @GetMapping("/draft")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ApiMetaRes<List<ProductDTO>> getDraftProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<ProductDTO> productPage = productService.getDraftProducts(page, size);
+        MetadataDTO metadata = new MetadataDTO(
+                productPage.getTotalElements(),
+                productPage.getTotalPages(),
+                productPage.getNumber(),
+                productPage.getSize());
+
+        return ApiMetaRes.<List<ProductDTO>>builder().code(1000).message("lấy danh sách thành công")
+                .result(productPage.getContent()).metadata(metadata).build();
+
     }
 }
