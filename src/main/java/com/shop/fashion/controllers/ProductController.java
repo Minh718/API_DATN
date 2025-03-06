@@ -80,4 +80,28 @@ public class ProductController {
                 .result(productPage.getContent()).metadata(metadata).build();
 
     }
+
+    @Cacheable(value = "publicProductsBySubCategory", key = "#page + '-' + #size + '-' + #thump + '-' + #sortBy + '-' + #order", condition = "#page == 0")
+    @GetMapping("/public/subCategory")
+    public ApiMetaRes<List<ProductDTO>> getPublicProductsBySubCategory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam String thump,
+            @RequestParam(defaultValue = "newest") String sortBy,
+            @RequestParam(defaultValue = "asc") String order) {
+
+        Page<ProductDTO> productPage = productService.getPublicProductsBySubCategory(page, size, thump, sortBy,
+                order);
+        MetadataDTO metadata = new MetadataDTO(
+                productPage.getTotalElements(),
+                productPage.getTotalPages(),
+                productPage.getNumber(),
+                productPage.getSize());
+        return ApiMetaRes.<List<ProductDTO>>builder()
+                .code(1000)
+                .message("lấy danh sách thành công")
+                .result(productPage.getContent())
+                .metadata(metadata)
+                .build();
+    }
 }

@@ -137,4 +137,20 @@ public class ProductService {
         Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
         return productDTOs;
     }
+
+    public Page<ProductDTO> getPublicProductsBySubCategory(int page, int size, String thump, String sortBy,
+            String orderBy) {
+        Pageable pageable;
+        if (orderBy.equals("asc")) {
+            pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, sortBy));
+        } else {
+            pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
+        }
+        SubCategory subCategory = subCategoryRepository.findByThump(thump)
+                .orElseThrow(() -> new CustomException(ErrorCode.SUBCATEGORY_NOT_EXISTED));
+        Page<Product> products = productRepository.findAllByStatusAndSubCategory(true,
+                subCategory, pageable);
+        Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
+        return productDTOs;
+    }
 }
