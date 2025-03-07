@@ -53,7 +53,7 @@ public class User {
     private String idUserGithub = "0";
     private LocalDate dob;
     @Builder.Default
-    private LocalDateTime createdAt = DateTimeUtil.getCurrentVietnamTime();
+    private LocalDateTime createdAt = LocalDateTime.now();
     @Builder.Default
     private boolean isactive = true;
 
@@ -64,11 +64,11 @@ public class User {
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-    Set<Role> roles;
+    private Set<Role> roles;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "cart_id", referencedColumnName = "id")
-    Cart cart;
+    private Cart cart;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<UserVoucher> userVouchers;
