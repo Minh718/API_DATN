@@ -70,7 +70,6 @@ public class User {
     @JoinColumn(name = "cart_id", referencedColumnName = "id")
     Cart cart;
 
-    // @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch =
-    // FetchType.LAZY)
-    // private Set<UserVoucher> userVouchers;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<UserVoucher> userVouchers;
 }
