@@ -44,6 +44,8 @@ public class Order {
     private Long shippingCost = 0L;
     private String shippingAddress;
     private String phone;
+    private String code; // voucher
+
     private String fullName;
     @Column(columnDefinition = "TEXT")
     private String urlPayment;

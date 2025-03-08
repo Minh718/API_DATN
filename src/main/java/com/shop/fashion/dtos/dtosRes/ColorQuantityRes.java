@@ -1,19 +1,19 @@
 package com.shop.fashion.dtos.dtosRes;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * ApiErrorRes
- */
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ApiErrorRes {
+public class ColorQuantityRes {
 
-    private int code;
-    private String message;
+    private Long id;
+    private int quantity;
+
+    private ColorRes color;
 }

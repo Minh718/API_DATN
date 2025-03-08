@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.shop.fashion.dtos.dtosReq.ProductAddDTO;
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
+import com.shop.fashion.dtos.dtosRes.ProductDetailDTO;
 import com.shop.fashion.entities.Brand;
 import com.shop.fashion.entities.Category;
 import com.shop.fashion.entities.DetailProduct;
@@ -43,6 +44,7 @@ public class ProductService {
     private final SubCategoryRepository subCategoryRepository;
     private final BrandRepository brandRepository;
     private final ProductRepository productRepository;
+    private final RedisService redisService;
 
     @NonFinal
     private final String uploadDir = "uploads/";
@@ -139,18 +141,72 @@ public class ProductService {
     }
 
     public Page<ProductDTO> getPublicProductsBySubCategory(int page, int size, String thump, String sortBy,
-            String orderBy) {
-        Pageable pageable;
-        if (orderBy.equals("asc")) {
-            pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, sortBy));
-        } else {
-            pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
-        }
+            String orderBy, Double minPrice, Double maxPrice) {
+        Page<Product> products;
+        Sort.Direction sortDirection = orderBy.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
         SubCategory subCategory = subCategoryRepository.findByThump(thump)
                 .orElseThrow(() -> new CustomException(ErrorCode.SUBCATEGORY_NOT_EXISTED));
-        Page<Product> products = productRepository.findAllByStatusAndSubCategory(true,
-                subCategory, pageable);
-        Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
-        return productDTOs;
+        if (minPrice == null) {
+            products = productRepository.findAllByStatusAndSubCategory(true,
+                    subCategory, pageable);
+        } else {
+            products = productRepository.findAllByStatusAndSubCategoryAndPriceBetween(
+                    true, subCategory, minPrice, maxPrice, pageable);
+        }
+        return products.map(ProductMapper.INSTANCE::toProductDTO);
+    }
+
+    public Page<ProductDTO> getPublicProducts(int page, int size, String sortBy,
+            String orderBy, Double minPrice, Double maxPrice) {
+        Page<Product> products;
+        Sort.Direction sortDirection = orderBy.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+        if (minPrice == null) {
+            products = productRepository.findAllByStatus(true, pageable);
+        } else {
+            products = productRepository.findAllByStatusAndPriceBetween(
+                    true, minPrice, maxPrice, pageable);
+        }
+        return products.map(ProductMapper.INSTANCE::toProductDTO);
+    }
+
+    public ProductDetailDTO getProductDetail(Long id) {
+        // Product product = productRepository.findById(id)
+        // .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_EXISTED));
+        Product product = productRepository.findByIdAndFetchProductSizesAndFetchDetailProduct(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_EXISTED));
+
+        // will be removed
+        if (product.getDetailProduct().getImages().size() == 0) {
+            List<String> images = new LinkedList<>();
+            images.add("https://picsum.photos/201/300");
+            images.add("https://picsum.photos/202/300");
+            images.add("https://picsum.photos/203/300");
+            product.getDetailProduct().setImages(images);
+            productRepository.save(product);
+        }
+        ProductDetailDTO productDetailDTO = ProductMapper.INSTANCE.toProductDetailDTO(product);
+        productDetailDTO.getProductSizes().forEach(productSize -> {
+            var quantityPZ = redisService.getKey("productSize:" + productSize.getId());
+            // if (quantityPZ == null) {
+            // // will be removed
+            // quantityPZ = processing(productSize);
+            // redisService.setKey("productSize:" + productSize.getId(), quantityPZ);
+            // }
+            productSize.setQuantity((int) quantityPZ);
+            if ((int) quantityPZ != 0) {
+                productSize.getProductSizeColors().forEach(productSizeColor -> {
+
+                    var quantityPSC = redisService.getKey("productSizeColor:" +
+                            productSizeColor.getId());
+                    if (quantityPSC == null) {
+                        quantityPSC = 0;
+                    }
+                    productSizeColor.setQuantity((int) quantityPSC);
+                });
+            }
+        });
+        return productDetailDTO;
     }
 }

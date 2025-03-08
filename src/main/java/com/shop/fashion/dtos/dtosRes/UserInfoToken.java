@@ -1,15 +1,19 @@
 package com.shop.fashion.dtos.dtosRes;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
  * UserInfo
  */
+
 @Getter
 @Setter
-@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserInfoToken {
     private String id;
     private String name;

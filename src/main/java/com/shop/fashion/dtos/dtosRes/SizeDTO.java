@@ -1,19 +1,16 @@
 package com.shop.fashion.dtos.dtosRes;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * ApiErrorRes
- */
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ApiErrorRes {
-
-    private int code;
-    private String message;
+public class SizeDTO {
+    private Long id;
+    private String name;
 }

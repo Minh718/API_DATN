@@ -41,7 +41,10 @@ public class Product {
     private int percent;
     private String image;
     private Long categoryId;
-
+    @Builder.Default
+    private int rating = 0;
+    @Builder.Default
+    private int reviews = 0;
     @Builder.Default
     private LocalDateTime createdDate = DateTimeUtil.getCurrentVietnamTime();
     @Builder.Default

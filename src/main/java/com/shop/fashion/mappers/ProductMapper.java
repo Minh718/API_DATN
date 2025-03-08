@@ -5,6 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
+import com.shop.fashion.dtos.dtosRes.ProductDetailDTO;
 import com.shop.fashion.entities.Product;
 
 @Mapper
@@ -22,4 +23,7 @@ public interface ProductMapper {
 
     @Mapping(source = "createdDate", target = "createdDate", dateFormat = "yyyy-MM-dd'T'HH:mm:ss")
     ProductDTO toProductDTO(Product product);
+
+    ProductDetailDTO toProductDetailDTO(Product product);
+
 }
