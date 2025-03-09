@@ -22,7 +22,8 @@ public enum ErrorCode {
     PHONE_NOT_EXISTED(1043, "Phone number not existed", HttpStatus.NOT_FOUND),
     INVALID_OTP(1044, " Otp is invalid", HttpStatus.NOT_FOUND),
     OTP_IS_EXPIRED(1044, " Otp is expired", HttpStatus.NOT_FOUND),
-    ;
+    PHONE_REGISTERED(1045, "This phone is registered with system", HttpStatus.NOT_FOUND),
+    OTP_IS_SENDING(1046, "Otp is sending to your phone", HttpStatus.NOT_FOUND);
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

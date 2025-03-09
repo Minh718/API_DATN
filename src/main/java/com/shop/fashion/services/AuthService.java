@@ -29,6 +29,7 @@ import com.shop.fashion.repositories.UserRepository;
 import com.shop.fashion.repositories.httpClient.OutboundIdentityClientGoogle;
 import com.shop.fashion.repositories.httpClient.OutboundInfoUserGoogle;
 import com.shop.fashion.utils.KeyGenerator;
+import com.shop.fashion.utils.OTPGenerator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
@@ -43,8 +44,9 @@ public class AuthService {
     private final MailService mailService;
     private final JwtService jwtService;
     private final RoleRepository roleRepository;
-    OutboundInfoUserGoogle outboundInfoUserGoogle;
-    OutboundIdentityClientGoogle outboundIdentityClientGoogle;
+    private final SmsService smsService;
+    private final OutboundInfoUserGoogle outboundInfoUserGoogle;
+    private final OutboundIdentityClientGoogle outboundIdentityClientGoogle;
 
     @NonFinal
     @Value("${security.jwt.expiration-time-access}")
@@ -98,6 +100,17 @@ public class AuthService {
 
         // Send email
         mailService.sendSimpleMail(emailDetailDto);
+    }
+
+    public void handleGetOtpForPhoneNumber(String phone) {
+        userRepository.findByPhone(phone).orElseThrow(() -> new CustomException(ErrorCode.PHONE_REGISTERED));
+        Boolean isExistPhone = redisService.checkKeyExist(phone);
+        if (isExistPhone.booleanValue()) {
+            throw new CustomException(ErrorCode.OTP_IS_SENDING);
+        }
+        String otp = OTPGenerator.generateNumericOTP(6);
+        smsService.sendSms(phone, "Your verification code is" + otp);
+        redisService.setKeyinMinutes(phone, otp, 6);
     }
 
     public void handleUserSignupByPhone(UserSignupByPhone userSignupByPhone) {
