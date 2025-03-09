@@ -18,7 +18,10 @@ public enum ErrorCode {
     INVALID_REQUEST(1042, "Invalid request", HttpStatus.BAD_REQUEST),
     SUBCATEGORY_NOT_EXISTED(1021, "Subcategory not existed", HttpStatus.NOT_FOUND),
     BRAND_NOT_EXISTED(1041, "Brand not existed", HttpStatus.NOT_FOUND),
-    PRODUCT_NOT_EXISTED(1013, "Product not existed", HttpStatus.NOT_FOUND),
+    PRODUCT_NOT_EXISTED(1042, "Product not existed", HttpStatus.NOT_FOUND),
+    PHONE_NOT_EXISTED(1043, "Phone number not existed", HttpStatus.NOT_FOUND),
+    INVALID_OTP(1044, " Otp is invalid", HttpStatus.NOT_FOUND),
+    OTP_IS_EXPIRED(1044, " Otp is expired", HttpStatus.NOT_FOUND),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

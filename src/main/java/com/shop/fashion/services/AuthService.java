@@ -14,6 +14,7 @@ import com.shop.fashion.dtos.EmailDetailDto;
 import com.shop.fashion.dtos.dtosReq.GetTokenGoogleReq;
 import com.shop.fashion.dtos.dtosReq.UserSignin;
 import com.shop.fashion.dtos.dtosReq.UserSignupByEmail;
+import com.shop.fashion.dtos.dtosReq.UserSignupByPhone;
 import com.shop.fashion.dtos.dtosRes.GetTokenGoogleRes;
 import com.shop.fashion.dtos.dtosRes.OutBoundInfoUser;
 import com.shop.fashion.dtos.dtosRes.UserInfoToken;
@@ -76,7 +77,7 @@ public class AuthService {
     @NonFinal
     String GRANT_TYPE = "authorization_code";
 
-    public void signUpUserByEmail(UserSignupByEmail userSignupByEmail) throws IOException {
+    public void handleUserSignupByEmail(UserSignupByEmail userSignupByEmail) throws IOException {
         // Check if user already exists
         if (userRepository.findByEmail(userSignupByEmail.getEmail()).isPresent()) {
             throw new CustomException(ErrorCode.USER_EXISTED);
@@ -99,6 +100,22 @@ public class AuthService {
         mailService.sendSimpleMail(emailDetailDto);
     }
 
+    public void handleUserSignupByPhone(UserSignupByPhone userSignupByPhone) {
+        String phone = userSignupByPhone.getPhone();
+        String otpFromRedis = (String) redisService.getKey(phone);
+
+        if (otpFromRedis == null) {
+            throw new CustomException(ErrorCode.OTP_IS_EXPIRED);
+        }
+
+        if (!otpFromRedis.equals(userSignupByPhone.getOtp())) {
+            throw new CustomException(ErrorCode.INVALID_OTP);
+        }
+
+        User newUser = createNewUser(userSignupByPhone.getPassword(), null, phone);
+        userRepository.save(newUser);
+    }
+
     public void completeSignupEmail(String token) {
         Boolean isExist = redisService.checkKeyExist(token + ":email");
         if (isExist.booleanValue()) {
@@ -106,23 +123,28 @@ public class AuthService {
             String password = (String) redisService.getKey(token + ":password");
             redisService.delKey(token + ":email");
             redisService.delKey(token + ":password");
-            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-            String passwordHash = passwordEncoder.encode(password);
-            HashSet<Role> roles = new HashSet<>();
-            roleRepository.findById(RoleUser.USER_ROLE).ifPresent(roles::add);
-            User user = new User();
-            Cart cart = new Cart();
-            user.setCart(cart);
-            user.setEmail(email);
-            user.setPassword(passwordHash);
-            user.setRoles(roles);
-            user.setCart(cart);
-            user.setKeyToken(KeyGenerator.generateRandomKey());
-            userRepository.save(user);
+            userRepository.save(createNewUser(password, email, null));
             // addChatBoxForUser(user.getId());
             // voucherService.addVouchersToNewUser(user);
         } else
             throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+    }
+
+    private User createNewUser(String password, String email, String phone) {
+        User user = new User();
+        Cart cart = new Cart();
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        String passwordHash = passwordEncoder.encode(password);
+        HashSet<Role> roles = new HashSet<>();
+        roleRepository.findById(RoleUser.USER_ROLE).ifPresent(roles::add);
+        user.setCart(cart);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setPassword(passwordHash);
+        user.setRoles(roles);
+        user.setCart(cart);
+        user.setKeyToken(KeyGenerator.generateRandomKey());
+        return user;
     }
 
     public UserInfoToken userLoginbyUsername(UserSignin userLogin) {
