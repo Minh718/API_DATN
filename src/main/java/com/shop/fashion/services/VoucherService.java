@@ -1,5 +1,7 @@
 package com.shop.fashion.services;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +17,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class VoucherService {
     UserVoucherRepository userVoucherRepository;
+
+    public List<Voucher> getAllVouchers() {
+        // List<Voucher> vouchers = null;
+        String idUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<Voucher> vouchers = userVoucherRepository.findAllByIdUserAndStillApply(idUser);
+        return vouchers;
+    }
 
     public Page<Voucher> getVouchers(int page, int size) {
         String idUser = SecurityContextHolder.getContext().getAuthentication().getName();

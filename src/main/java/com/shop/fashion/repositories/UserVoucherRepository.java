@@ -15,6 +15,8 @@ import com.shop.fashion.entities.Voucher;
 
 @Repository
 public interface UserVoucherRepository extends JpaRepository<UserVoucher, UserVoucherId> {
+    @Query("SELECT uv.voucher FROM UserVoucher uv WHERE uv.user.id = :idUser AND uv.voucher.startDate <= CURRENT_TIMESTAMP AND uv.voucher.endDate >= CURRENT_TIMESTAMP AND uv.voucher.isActive = true AND uv.isUsed = false")
+    List<Voucher> findAllByIdUserAndStillApply(@Param("idUser") String idUser);
 
     @Query("SELECT uv.voucher FROM UserVoucher uv WHERE uv.user.id = :idUser AND uv.voucher.startDate <= CURRENT_TIMESTAMP AND uv.voucher.endDate >= CURRENT_TIMESTAMP AND uv.voucher.isActive = true AND uv.isUsed = false")
     Page<Voucher> findAllByIdUserAndStillApply(@Param("idUser") String idUser, Pageable pageable);

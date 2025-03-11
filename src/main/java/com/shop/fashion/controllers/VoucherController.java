@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.shop.fashion.dtos.dtosRes.ApiMetaRes;
+import com.shop.fashion.dtos.dtosRes.ApiRes;
 import com.shop.fashion.dtos.dtosRes.MetadataDTO;
 import com.shop.fashion.entities.Voucher;
 import com.shop.fashion.services.VoucherService;
@@ -20,6 +21,13 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/vouchers")
 public class VoucherController {
         private final VoucherService voucherService;
+
+        @GetMapping("/user/all")
+        public ApiRes<List<Voucher>> getAllVouchers() {
+                return ApiRes.<List<Voucher>>builder().result(voucherService.getAllVouchers())
+                                .message("get vouchers susccess")
+                                .build();
+        }
 
         @GetMapping("/user/get")
         public ApiMetaRes<List<Voucher>> getVouchers(@RequestParam(defaultValue = "0") int page,

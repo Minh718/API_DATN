@@ -23,9 +23,15 @@ public enum ErrorCode {
     INVALID_OTP(1044, " Otp is invalid", HttpStatus.NOT_FOUND),
     OTP_IS_EXPIRED(1044, " Otp is expired", HttpStatus.NOT_FOUND),
     PHONE_REGISTERED(1045, "This phone is registered with system", HttpStatus.NOT_FOUND),
-    OTP_IS_SENDING(1046, "Otp is sending to your phone", HttpStatus.NOT_FOUND);
+    OTP_IS_SENDING(1046, "Otp is sending to your phone", HttpStatus.NOT_FOUND),
+    PRODUCT_SIZE_NOT_EXISTED(1048, "Product size not existed", HttpStatus.NOT_FOUND),
 
-    ErrorCode(int code, String message, HttpStatusCode statusCode) {
+    QUANTITY_NOT_ENOUGH(1047, "Quantity not enough", HttpStatus.BAD_REQUEST);
+
+    ErrorCode(
+
+            int code, String message,
+            HttpStatusCode statusCode) {
         this.code = code;
         this.message = message;
         this.statusCode = statusCode;
