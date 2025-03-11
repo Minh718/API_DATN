@@ -25,6 +25,8 @@ public enum ErrorCode {
     PHONE_REGISTERED(1045, "This phone is registered with system", HttpStatus.NOT_FOUND),
     OTP_IS_SENDING(1046, "Otp is sending to your phone", HttpStatus.NOT_FOUND),
     PRODUCT_SIZE_NOT_EXISTED(1048, "Product size not existed", HttpStatus.NOT_FOUND),
+    CART_PRODUCT_SIZE_NOT_EXISTED(1049, "Cart product size not existed", HttpStatus.NOT_FOUND),
+    PRODUCT_SIZE_COLOR_NOT_EXISTED(1050, "Product size color not existed", HttpStatus.NOT_FOUND),
 
     QUANTITY_NOT_ENOUGH(1047, "Quantity not enough", HttpStatus.BAD_REQUEST);
 

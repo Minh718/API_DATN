@@ -16,4 +16,10 @@ public interface CartProductSizeColorRepository extends JpaRepository<CartProduc
     Optional<CartProductSizeColor> findByCartIdAndProductSizeColorId(String cartId,
             long productSizeColorId);
 
+    Optional<CartProductSizeColor> findByIdAndCartId(long id, String cartId);
+
+    @Query("SELECT cpsc FROM CartProductSizeColor cpsc WHERE cpsc.cart.id = :cartId ORDER BY cpsc.updateAt DESC")
+    Page<CartProductSizeColor> findAllByCartIdOrderByUpdateAtDesc(String cartId,
+            Pageable pageable);
+
 }

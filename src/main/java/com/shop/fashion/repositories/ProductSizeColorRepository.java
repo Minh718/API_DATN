@@ -10,4 +10,7 @@ import com.shop.fashion.entities.ProductSizeColor;
 
 @Repository
 public interface ProductSizeColorRepository extends JpaRepository<ProductSizeColor, Long> {
+    @Query("SELECT psc FROM ProductSizeColor psc JOIN FETCH psc.productSize ps JOIN FETCH ps.product WHERE psc.id = :pscId")
+    Optional<ProductSizeColor> findByIdFetchProductSizeAndFetchProduct(long pscId);
+
 }
