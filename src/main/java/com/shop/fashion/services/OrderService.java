@@ -1,11 +1,18 @@
 package com.shop.fashion.services;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import org.hibernate.Hibernate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +32,7 @@ import com.shop.fashion.entities.User;
 import com.shop.fashion.entities.Voucher;
 import com.shop.fashion.enums.OrderStatus;
 import com.shop.fashion.enums.PaymentMethod;
+import com.shop.fashion.enums.PaymentStatus;
 import com.shop.fashion.exceptions.CustomException;
 import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.OrderMapper;
@@ -50,6 +58,9 @@ public class OrderService {
     private final ProductSizeColorRepository productSizeColorRepository;
     private final RedisService redisService;
     private final PaymentService paymentService;
+    @Autowired
+    @Lazy
+    private OrderService self;
 
     public Page<OrderResDTO> getOrdersByOrderStatus(int page, int size, OrderStatus orderStatus) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -194,5 +205,40 @@ public class OrderService {
         payment.setOrder(order);
         return orderRepository.save(order);
 
+    }
+
+    public void confirmPaymentOrder(Map<String, String> reqParams) {
+        String vnp_SecureHash = reqParams.remove("vnp_SecureHash");
+        if (!vnp_SecureHash.equals(paymentService.getVnpSecureHash(reqParams))) {
+            throw new CustomException(ErrorCode.ERROR_PAYMENT);
+        }
+        Long orderId = Long.parseLong(reqParams.get("vnp_OrderInfo"));
+        Order order = orderRepository.findById(orderId).orElseThrow();
+        String status = reqParams.get("vnp_ResponseCode");
+        if (status.equals("00")) {
+            order.setOrderStatus(OrderStatus.CONFIRMED);
+            Payment payment = order.getPayment();
+            payment.setAmount(Long.parseLong(reqParams.get("vnp_Amount")) / 2500000);
+            payment.setTransactionID(reqParams.get("vnp_TransactionNo"));
+            payment.setPaymentStatus(PaymentStatus.PAID);
+            payment.setTranNew(true);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+            payment.setCreatedAt(LocalDateTime.parse(reqParams.get("vnp_PayDate"), formatter));
+            orderRepository.save(order);
+        } else {
+            Hibernate.initialize(order.getOrderProducts());
+            self.rollbackOnOrderCancellation(order);
+        }
+    }
+
+    @Async("rollBackOrder")
+    public void rollbackOnOrderCancellation(Order order) {
+        Set<OrderProduct> orderProducts = order.getOrderProducts();
+        for (OrderProduct orderProduct : orderProducts) {
+            ProductSizeColor productSizeColor = orderProduct.getProductSizeColor();
+            redisService.incrementKey("productSizeColor:" + productSizeColor.getId(), orderProduct.getQuantity());
+        }
+        order.setOrderStatus(OrderStatus.CANCELED);
+        orderRepository.save(order);
     }
 }
