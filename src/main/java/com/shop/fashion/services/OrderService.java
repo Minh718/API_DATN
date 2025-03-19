@@ -49,6 +49,7 @@ public class OrderService {
     private final CartProductSizeColorRepository cartProductSizeColorRepository;
     private final ProductSizeColorRepository productSizeColorRepository;
     private final RedisService redisService;
+    private final PaymentService paymentService;
 
     public Page<OrderResDTO> getOrdersByOrderStatus(int page, int size, OrderStatus orderStatus) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
