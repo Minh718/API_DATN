@@ -65,6 +65,24 @@ public class ProductController {
                                 .build());
         }
 
+        @GetMapping("/search")
+        public ApiMetaRes<List<ProductDTO>> searchProducts(
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "createdDate") String sortBy,
+                        @RequestParam(defaultValue = "desc") String order,
+                        @RequestParam String query) {
+                Page<ProductDTO> productPage = productService.searchPublicProductsByName(query, size, page, sortBy,
+                                order);
+                MetadataDTO metadata = new MetadataDTO(
+                                productPage.getTotalElements(),
+                                productPage.getTotalPages(),
+                                productPage.getNumber(),
+                                productPage.getSize());
+                return ApiMetaRes.<List<ProductDTO>>builder().code(1000).message("lấy danh sách thành công")
+                                .result(productPage.getContent()).metadata(metadata).build();
+        }
+
         @GetMapping("/draft")
         @PreAuthorize("hasRole('ROLE_ADMIN')")
         public ApiMetaRes<List<ProductDTO>> getDraftProducts(

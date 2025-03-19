@@ -12,7 +12,8 @@ import com.shop.fashion.entities.Product;
 import com.shop.fashion.entities.SubCategory;
 
 @Repository
-public interface ProductRepository extends JpaRepository<com.shop.fashion.entities.Product, Long> {
+public interface ProductRepository
+                extends JpaRepository<com.shop.fashion.entities.Product, Long>, ProductSearchRepository {
 
         Page<Product> findAllByIsDraftOrderByCreatedDateDesc(boolean isDraft,
                         Pageable pageable);

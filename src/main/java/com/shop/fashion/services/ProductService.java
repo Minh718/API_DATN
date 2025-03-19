@@ -209,4 +209,15 @@ public class ProductService {
         });
         return productDetailDTO;
     }
+
+    public Page<ProductDTO> searchPublicProductsByName(@NotBlank(message = "query is required") String name, int size,
+            int page, String sortBy,
+            String orderBy) {
+        Pageable pageable = PageRequest.of(page, size);
+        SortOrder sortOrder = orderBy.equals("asc") ? SortOrder.ASC : SortOrder.DESC;
+        Page<Product> products = productRepository.searchPublicProduct(name, pageable, List.of("name"), sortBy,
+                sortOrder);
+        Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
+        return productDTOs;
+    }
 }
