@@ -1,14 +1,17 @@
 package com.shop.fashion.controllers;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.shop.fashion.dtos.dtosReq.OrderDTO;
 import com.shop.fashion.dtos.dtosRes.ApiMetaRes;
 import com.shop.fashion.dtos.dtosRes.ApiRes;
 import com.shop.fashion.dtos.dtosRes.DetailOrderDTO;
@@ -20,6 +23,8 @@ import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.OrderMapper;
 import com.shop.fashion.services.OrderService;
 
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -63,4 +68,12 @@ public class OrderController {
                                 .result(orderService.getDetailOrder(id))
                                 .build();
         }
+
+        @PostMapping("/save")
+        public ApiRes<DetailOrderDTO> save(@RequestBody OrderDTO order, HttpServletRequest request) throws IOException {
+                return ApiRes.<DetailOrderDTO>builder().code(1000).message("Create order success")
+                                .result(orderService.save(order, request))
+                                .build();
+        }
+
 }

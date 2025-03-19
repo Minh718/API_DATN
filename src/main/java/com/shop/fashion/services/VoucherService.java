@@ -1,5 +1,6 @@
 package com.shop.fashion.services;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -9,14 +10,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.shop.fashion.entities.Voucher;
+import com.shop.fashion.exceptions.CustomException;
+import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.repositories.UserVoucherRepository;
+import com.shop.fashion.repositories.VoucherRepository;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class VoucherService {
-    UserVoucherRepository userVoucherRepository;
+    private final UserVoucherRepository userVoucherRepository;
+    private final VoucherRepository voucherRepository;
 
     public List<Voucher> getAllVouchers() {
         // List<Voucher> vouchers = null;
@@ -30,5 +35,28 @@ public class VoucherService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Voucher> vouchers = userVoucherRepository.findAllByIdUserAndStillApply(idUser, pageable);
         return vouchers;
+    }
+
+    public Voucher checkVoucher(String code) {
+        Voucher voucher = voucherRepository.findByCode(code)
+                .orElseThrow(() -> new CustomException(ErrorCode.VOUCHER_NOT_FOUND));
+
+        if (!voucher.isActive()) {
+            throw new CustomException(ErrorCode.VOUCHER_NOT_ACTIVE);
+        }
+
+        LocalDate today = LocalDate.now();
+
+        if (voucher.getStartDate().isAfter(today)) {
+            throw new CustomException(ErrorCode.BAD_REQUEST,
+                    "This voucher starts on " + voucher.getStartDate().toString());
+        }
+
+        if (voucher.getEndDate().isBefore(today)) {
+            throw new CustomException(ErrorCode.BAD_REQUEST,
+                    "This voucher ended on " + voucher.getEndDate().toString());
+        }
+
+        return voucher;
     }
 }

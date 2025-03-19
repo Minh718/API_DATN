@@ -27,6 +27,14 @@ public enum ErrorCode {
     PRODUCT_SIZE_NOT_EXISTED(1048, "Product size not existed", HttpStatus.NOT_FOUND),
     CART_PRODUCT_SIZE_NOT_EXISTED(1049, "Cart product size not existed", HttpStatus.NOT_FOUND),
     PRODUCT_SIZE_COLOR_NOT_EXISTED(1050, "Product size color not existed", HttpStatus.NOT_FOUND),
+    PLEASE_RELOAD_PAGE(1051, "please reload page", HttpStatus.BAD_REQUEST),
+    VOUCHER_DONT_BELONG_TO_USER(1052, "Voucher don't belong to user", HttpStatus.BAD_REQUEST),
+    VOUCHER_IS_USED_ALREADY(1053, "Voucher is used already", HttpStatus.BAD_REQUEST),
+    BAD_REQUEST(1054, "BAD_REQUEST", HttpStatus.BAD_REQUEST),
+    VOUCHER_NOT_ACTIVE(1055, "Voucher is not active", HttpStatus.BAD_REQUEST),
+    VOUCHER_NOT_FOUND(1056, "Voucher not found", HttpStatus.NOT_FOUND),
+    RECHECKOUT_FAILED(1057, "Recheckout failed", HttpStatus.BAD_REQUEST),
+    ERROR_SYSTEM(1058, "System error", HttpStatus.INTERNAL_SERVER_ERROR),
 
     QUANTITY_NOT_ENOUGH(1047, "Quantity not enough", HttpStatus.BAD_REQUEST);
 
