@@ -36,6 +36,7 @@ public enum ErrorCode {
     RECHECKOUT_FAILED(1057, "Recheckout failed", HttpStatus.BAD_REQUEST),
     ERROR_SYSTEM(1058, "System error", HttpStatus.INTERNAL_SERVER_ERROR),
     ERROR_PAYMENT(1059, "Error payment", HttpStatus.BAD_REQUEST),
+    CHAT_BOX_NOT_FOUND(1060, "Chat box not found", HttpStatus.NOT_FOUND),
 
     QUANTITY_NOT_ENOUGH(1047, "Quantity not enough", HttpStatus.BAD_REQUEST);
 

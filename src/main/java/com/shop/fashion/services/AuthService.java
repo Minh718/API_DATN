@@ -19,11 +19,14 @@ import com.shop.fashion.dtos.dtosRes.GetTokenGoogleRes;
 import com.shop.fashion.dtos.dtosRes.OutBoundInfoUser;
 import com.shop.fashion.dtos.dtosRes.UserInfoToken;
 import com.shop.fashion.entities.Cart;
+import com.shop.fashion.entities.ChatBox;
 import com.shop.fashion.entities.Role;
 import com.shop.fashion.entities.User;
+import com.shop.fashion.entities.Voucher;
 import com.shop.fashion.exceptions.CustomException;
 import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.UserMapper;
+import com.shop.fashion.repositories.ChatBoxRepository;
 import com.shop.fashion.repositories.RoleRepository;
 import com.shop.fashion.repositories.UserRepository;
 import com.shop.fashion.repositories.httpClient.OutboundIdentityClientGoogle;
@@ -45,9 +48,10 @@ public class AuthService {
     private final JwtService jwtService;
     private final RoleRepository roleRepository;
     private final SmsService smsService;
+    private final ChatBoxRepository chatBoxRepository;
     private final OutboundInfoUserGoogle outboundInfoUserGoogle;
     private final OutboundIdentityClientGoogle outboundIdentityClientGoogle;
-
+    private final VoucherService voucherService;
     @NonFinal
     @Value("${security.jwt.expiration-time-access}")
     long expAccessToken;
@@ -127,6 +131,8 @@ public class AuthService {
 
         User newUser = createNewUser(userSignupByPhone.getPassword(), null, phone);
         userRepository.save(newUser);
+        addChatBoxForUser(newUser.getId());
+        voucherService.addVouchersToNewUser(newUser);
     }
 
     public void completeSignupEmail(String token) {
@@ -136,9 +142,10 @@ public class AuthService {
             String password = (String) redisService.getKey(token + ":password");
             redisService.delKey(token + ":email");
             redisService.delKey(token + ":password");
-            userRepository.save(createNewUser(password, email, null));
-            // addChatBoxForUser(user.getId());
-            // voucherService.addVouchersToNewUser(user);
+            User newUser = createNewUser(password, email, null);
+            userRepository.save(newUser);
+            addChatBoxForUser(newUser.getId());
+            voucherService.addVouchersToNewUser(newUser);
         } else
             throw new CustomException(ErrorCode.TOKEN_EXPIRED);
     }
@@ -205,11 +212,20 @@ public class AuthService {
             Cart cart = new Cart();
             newUser.setCart(cart);
             userRepository.save(newUser);
-            // addChatBoxForUser(newUser.getId());
+            addChatBoxForUser(newUser.getId());
             return newUser;
         });
         redisService.setKeyInMilliseconds("keyToken:" + user.getId(), user.getKeyToken(), expRefreshToken);
         redisService.addLoyalUser(user.getId());
         return AttachInfoUserWithToken(user);
     }
+
+    private void addChatBoxForUser(String userId) {
+        ChatBox chatBox = new ChatBox();
+        // String adminId = userService.getIdAdmin();
+        chatBox.setUserId(userId);
+        // chatBox.setAdminId(adminId);
+        chatBoxRepository.save(chatBox);
+    }
+
 }

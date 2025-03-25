@@ -6,9 +6,13 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.shop.fashion.entities.User;
+import com.shop.fashion.entities.UserVoucher;
+import com.shop.fashion.entities.UserVoucherId;
 import com.shop.fashion.entities.Voucher;
 import com.shop.fashion.exceptions.CustomException;
 import com.shop.fashion.exceptions.ErrorCode;
@@ -58,5 +62,18 @@ public class VoucherService {
         }
 
         return voucher;
+    }
+
+    @Async("ThreadPoolUserVoucher")
+    public void addVouchersToNewUser(User user) {
+        List<Voucher> vouchers = voucherRepository.findAllForNewUser();
+        for (Voucher voucher : vouchers) {
+            UserVoucherId userVoucherId = new UserVoucherId(user.getId(), voucher.getId());
+            UserVoucher userVoucher = new UserVoucher();
+            userVoucher.setId(userVoucherId);
+            userVoucher.setUser(user);
+            userVoucher.setVoucher(voucher);
+            userVoucherRepository.save(userVoucher);
+        }
     }
 }

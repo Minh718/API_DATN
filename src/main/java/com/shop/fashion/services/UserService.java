@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.shop.fashion.constants.RoleUser;
 import com.shop.fashion.dtos.dtosRes.UserInfoToken;
 import com.shop.fashion.entities.User;
 import com.shop.fashion.exceptions.CustomException;
@@ -27,5 +28,16 @@ public class UserService {
         redisService.addLoyalUser(user.getId());
         UserInfoToken userInfo = UserMapper.INSTANCE.toUserInfoToken(user);
         return userInfo;
+    }
+
+    public String getIdAdmin() {
+        Object id = redisService.getKey("idAdmin");
+        if (id == null) {
+            User user = userRepository.findByRolesName(RoleUser.ADMIN_ROLE)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_EXISTED));
+            redisService.setKey("idAdmin", user.getId());
+            return user.getId();
+        }
+        return id.toString();
     }
 }
