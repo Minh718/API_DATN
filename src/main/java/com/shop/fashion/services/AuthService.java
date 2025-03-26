@@ -167,15 +167,26 @@ public class AuthService {
         return user;
     }
 
-    public UserInfoToken userLoginbyUsername(UserSignin userLogin) {
-        User user = userRepository.findByEmailOrPhone(userLogin.getUsername())
+    public UserInfoToken userSigninbyUsername(UserSignin userSignin) {
+        User user = userRepository.findByEmailOrPhone(userSignin.getUsername())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_EXISTED));
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        boolean authenticated = passwordEncoder.matches(userLogin.getPassword(), user.getPassword());
+        boolean authenticated = passwordEncoder.matches(userSignin.getPassword(), user.getPassword());
         if (!authenticated)
             throw new CustomException(ErrorCode.UNAUTHENTICATED);
         redisService.setKeyInMilliseconds("keyToken:" + user.getId(), user.getKeyToken(), expRefreshToken);
         redisService.addLoyalUser(user.getId());
+        return AttachInfoUserWithToken(user);
+    }
+
+    public UserInfoToken adminSignin(UserSignin userSignin) {
+        User user = userRepository.findByEmailAndRole(userSignin.getUsername(), RoleUser.ADMIN_ROLE)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_EXISTED));
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        boolean authenticated = passwordEncoder.matches(userSignin.getPassword(), user.getPassword());
+        if (!authenticated)
+            throw new CustomException(ErrorCode.UNAUTHENTICATED);
+        redisService.setKeyInMilliseconds("keyToken:" + user.getId(), user.getKeyToken(), expRefreshToken);
         return AttachInfoUserWithToken(user);
     }
 
@@ -186,7 +197,7 @@ public class AuthService {
         return userInfo;
     }
 
-    public UserInfoToken userLoginByGoogle(String code) {
+    public UserInfoToken userSigninByGoogle(String code) {
         GetTokenGoogleReq getTokenGoogleReq = GetTokenGoogleReq.builder()
                 .code(code)
                 .clientId(CLIENT_ID)

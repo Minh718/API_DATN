@@ -14,7 +14,10 @@ import io.lettuce.core.dynamic.annotation.Param;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
-    public Optional<User> findByEmail(String email);
+    Optional<User> findByEmail(String email);
+
+    @Query("SELECT u FROM User u WHERE u.email = :email OR u.role.name = :role")
+    Optional<User> findByEmailAndRole(String email, String role);
 
     @Query("SELECT u FROM User u WHERE u.email = :username OR u.phone = :username")
     Optional<User> findByEmailOrPhone(String username);

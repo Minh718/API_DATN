@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -79,22 +80,32 @@ public class AuthController {
         }
 
         @PostMapping("/signin")
-        public ResponseEntity<ApiRes<UserInfoToken>> userLoginbyUsername(@Valid @RequestBody UserSignin userLogin) {
+        public ResponseEntity<ApiRes<UserInfoToken>> userSigninbyUsername(@Valid @RequestBody UserSignin userSignin) {
                 ApiRes<UserInfoToken> res = ApiRes.<UserInfoToken>builder()
                                 .code(1000)
                                 .message("Signin successfully")
-                                .result(authService.userLoginbyUsername(userLogin))
+                                .result(authService.userSigninbyUsername(userSignin))
+                                .build();
+                return ResponseEntity.ok().body(res);
+        }
+
+        @PostMapping("/admin/signin")
+        public ResponseEntity<ApiRes<UserInfoToken>> adminSignIn(@Valid @RequestBody UserSignin userSignin) {
+                ApiRes<UserInfoToken> res = ApiRes.<UserInfoToken>builder()
+                                .code(1000)
+                                .message("Signin successfully")
+                                .result(authService.adminSignin(userSignin))
                                 .build();
                 return ResponseEntity.ok().body(res);
         }
 
         @PostMapping("/signin/google")
-        public ApiRes<UserInfoToken> userLoginByGoogle(
+        public ApiRes<UserInfoToken> userSigninByGoogle(
                         @NotNull(message = "code is requried") @RequestParam() String code) {
                 return ApiRes.<UserInfoToken>builder()
                                 .code(1000)
                                 .message("Signin by google successfully")
-                                .result(authService.userLoginByGoogle(code))
+                                .result(authService.userSigninByGoogle(code))
                                 .build();
         }
 }

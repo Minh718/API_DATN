@@ -1,5 +1,6 @@
 package com.shop.fashion.controllers;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,4 +31,12 @@ public class UserController {
                 .build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin-info")
+    public ApiRes<UserInfoToken> getInfoAdmin() {
+        log.info("Get user info");
+        return ApiRes.<UserInfoToken>builder()
+                .result(userService.getMyInfo())
+                .build();
+    }
 }
