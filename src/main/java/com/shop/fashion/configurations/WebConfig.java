@@ -9,11 +9,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
     @Value("${frontend.host}")
     String frontendHost;
+    @Value("${frontend.admin.host}")
+    String frontendAdminHost;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins(frontendHost)
+                .allowedOrigins(frontendHost, frontendAdminHost)
                 .allowCredentials(true)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

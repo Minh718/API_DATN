@@ -21,7 +21,12 @@ import jakarta.servlet.http.HttpServletRequest;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINTS = {
-
+            "/ws/**", "/api/users", "/api/auth/**", "api/category/all", "/api/product/search",
+            "/api/product/public/*",
+            "swagger-ui/**", "v3/api-docs/**", "swagger-ui.html", "swagger-ui/**",
+            "/api/payment/vn-pay-callback", "/index-lucene-product",
+            "/api/product/public/homepage",
+            "/api/product/public/subCategory"
     };
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
@@ -33,6 +38,8 @@ public class SecurityConfig {
                 request -> request.requestMatchers(PUBLIC_ENDPOINTS)
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product/{id}")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "api/product/related/{id}")
                         .permitAll()
                         .anyRequest()
                         .authenticated());

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,7 +18,6 @@ import com.shop.fashion.dtos.dtosRes.MessageDTO;
 import com.shop.fashion.dtos.dtosRes.projections.ListChatBox;
 import com.shop.fashion.services.MessageService;
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.RequiredArgsConstructor;
 
 @RequestMapping("/api/messages")
@@ -67,7 +67,7 @@ public class MessageController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/cbs/all")
+    @GetMapping("/admin/cbus/all")
     public ApiRes<List<ListChatBox>> getAllChatBoxForAdmin() {
         return ApiRes.<List<ListChatBox>>builder().code(1000).result(messageService.getAllChatBoxForAdmin())
                 .message("succesfully").build();

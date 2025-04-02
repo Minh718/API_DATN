@@ -5,6 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import com.shop.fashion.configurations.VNPayConfig;
+import com.shop.fashion.dtos.dtosRes.PaymentDetailDTO;
+import com.shop.fashion.entities.Payment;
+import com.shop.fashion.exceptions.CustomException;
+import com.shop.fashion.exceptions.ErrorCode;
+import com.shop.fashion.repositories.PaymentRepository;
 import com.shop.fashion.utils.VNPayUtil;
 
 import java.util.*;
@@ -13,6 +18,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class PaymentService {
     private final VNPayConfig vnPayConfig;
+    private final PaymentRepository paymentRepository;
 
     public String createVnPayPayment(HttpServletRequest request, double amount, Long orderInfo) {
         Map<String, String> vnpParamsMap = vnPayConfig.getVNPayConfig();
@@ -37,5 +43,12 @@ public class PaymentService {
     public String getVnpSecureHash(Map<String, String> vnpParamsMap) {
         String hashData = VNPayUtil.getPaymentURL(vnpParamsMap, false);
         return VNPayUtil.hmacSHA512(vnPayConfig.getSecretKey(), hashData);
+    }
+
+    public PaymentDetailDTO getPaymentDetail(String tranid) {
+        Payment payment = paymentRepository.findByTransactionID(tranid)
+                .orElseThrow(() -> new CustomException(ErrorCode.BAD_REQUEST));
+        return PaymentDetailDTO.builder().amount(payment.getAmount()).transactionID(payment.getTransactionID())
+                .paymentMethod(payment.getPaymentMethod()).orderId(payment.getOrderId()).build();
     }
 }

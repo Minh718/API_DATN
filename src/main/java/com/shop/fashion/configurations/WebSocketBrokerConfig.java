@@ -10,8 +10,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketBrokerConfig implements WebSocketMessageBrokerConfigurer {
-    @Value("${frontend.host:http://localhost:5432}")
+    @Value("${frontend.host:http://localhost:5173}")
     private String frontendHost;
+    @Value("${frontend.admin.host}")
+    String frontendAdminHost;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -22,7 +24,7 @@ public class WebSocketBrokerConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(frontendHost) // Only allow your frontend origin
+                .setAllowedOrigins(frontendHost, frontendAdminHost) // Only allow your frontend origin
                 .withSockJS() // Enable SockJS fallback for older browsers
                 .setSessionCookieNeeded(true); // Enable sending session cookies
     }

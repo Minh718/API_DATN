@@ -3,10 +3,12 @@ package com.shop.fashion.controllers;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,17 +20,18 @@ import com.shop.fashion.dtos.dtosRes.CartProductSizeColorDTO;
 import com.shop.fashion.dtos.dtosRes.MetadataDTO;
 import com.shop.fashion.services.CartService;
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
+@Validated
 @RequestMapping("api/cart")
 public class CartController {
         private final CartService cartService;
 
         @PostMapping("/add")
-        public ApiRes<Void> addProductToCart(@RequestBody CartAddProductDTO cartAddProductDTO) {
+        public ApiRes<Void> addProductToCart(@Valid @RequestBody CartAddProductDTO cartAddProductDTO) {
                 return ApiRes.<Void>builder().code(1000).message("add product to cart success")
                                 .result(cartService.addProductToCart(cartAddProductDTO))
                                 .build();

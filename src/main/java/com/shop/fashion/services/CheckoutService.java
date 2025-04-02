@@ -51,7 +51,6 @@ public class CheckoutService {
             Product product = productSizeColor.getProductSize().getProduct();
             totalPrice += (product.getPrice() * (100 - product.getPercent())) *
                     cpscdb.getQuantity();
-            System.out.println("totalPrice: " + totalPrice);
         }
         totalPrice = Math.round(totalPrice) / 100.0;
         checkoutRes.setTotalPrice(totalPrice);

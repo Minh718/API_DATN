@@ -9,11 +9,11 @@
 		<relativePath/>
 		<!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.shopro</groupId>
-	<artifactId>shop1905</artifactId>
+	<groupId>com.shop</groupId>
+	<artifactId>shopfashion</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<name>shop1905</name>
+	<name>shopfashion</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>17</java.version>

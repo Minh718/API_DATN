@@ -10,10 +10,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,6 +26,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Payment {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     private Long id;
 
     @Enumerated(EnumType.STRING)
@@ -45,8 +46,6 @@ public class Payment {
     @Column(nullable = false)
     private String userId;
 
-    private boolean tranNew = false;
-
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -54,10 +53,11 @@ public class Payment {
     @Column(nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
 
-    @OneToOne
-    @MapsId // This tells JPA to use the Order's ID
-    @JoinColumn(name = "id")
-    private Order order;
+    // @OneToOne
+    // @MapsId // This tells JPA to use the Order's ID
+    // @JoinColumn(name = "id")
+    // private Order order;
+    private Long orderId;
 
     @PrePersist
     protected void onCreate() {

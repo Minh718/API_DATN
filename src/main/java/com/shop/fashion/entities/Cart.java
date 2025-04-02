@@ -23,7 +23,7 @@ public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-    private long quantity;
+    // private long quantity;
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @OrderBy("createdAt desc")
     private Set<CartProductSizeColor> CartProductsSizeColors = new HashSet<>();

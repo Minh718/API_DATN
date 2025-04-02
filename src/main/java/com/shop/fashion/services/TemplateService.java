@@ -25,6 +25,9 @@ public class TemplateService {
     @Value("${frontend.host}")
     @NonFinal
     private String frontentHost;
+    @Value("${backend.host}")
+    @NonFinal
+    private String backendHost;
 
     public String getTemplateEmail(String uuid, String email) throws IOException {
         Resource cpr = resourceLoader.getResource("classpath:templates/email-template.html");
@@ -33,7 +36,7 @@ public class TemplateService {
         Map<String, String> valuesMap = Map.of(
                 "Tên người dùng", email,
                 "Tên Công Ty", "Công ty ABC",
-                "Link xác nhận", frontentHost + "/email/confirm?token=" + uuid,
+                "Link xác nhận", backendHost + "/api/auth/email/confirm?token=" + uuid,
                 "Năm hiện tại", String.valueOf(java.time.Year.now()));
 
         StringSubstitutor sub = new StringSubstitutor(valuesMap);

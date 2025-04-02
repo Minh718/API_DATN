@@ -3,6 +3,7 @@ package com.shop.fashion.services;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -12,11 +13,13 @@ import org.springframework.stereotype.Service;
 import com.shop.fashion.constants.RoleUser;
 import com.shop.fashion.dtos.EmailDetailDto;
 import com.shop.fashion.dtos.dtosReq.GetTokenGoogleReq;
+import com.shop.fashion.dtos.dtosReq.RefreshTokenDTO;
 import com.shop.fashion.dtos.dtosReq.UserSignin;
 import com.shop.fashion.dtos.dtosReq.UserSignupByEmail;
 import com.shop.fashion.dtos.dtosReq.UserSignupByPhone;
 import com.shop.fashion.dtos.dtosRes.GetTokenGoogleRes;
 import com.shop.fashion.dtos.dtosRes.OutBoundInfoUser;
+import com.shop.fashion.dtos.dtosRes.TokenPair;
 import com.shop.fashion.dtos.dtosRes.UserInfoToken;
 import com.shop.fashion.entities.Cart;
 import com.shop.fashion.entities.ChatBox;
@@ -31,8 +34,10 @@ import com.shop.fashion.repositories.RoleRepository;
 import com.shop.fashion.repositories.UserRepository;
 import com.shop.fashion.repositories.httpClient.OutboundIdentityClientGoogle;
 import com.shop.fashion.repositories.httpClient.OutboundInfoUserGoogle;
+import com.shop.fashion.utils.HashValueUtil;
 import com.shop.fashion.utils.KeyGenerator;
 import com.shop.fashion.utils.OTPGenerator;
+import com.shop.fashion.utils.RamdomKeyUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
@@ -52,6 +57,7 @@ public class AuthService {
     private final OutboundInfoUserGoogle outboundInfoUserGoogle;
     private final OutboundIdentityClientGoogle outboundIdentityClientGoogle;
     private final VoucherService voucherService;
+
     @NonFinal
     @Value("${security.jwt.expiration-time-access}")
     long expAccessToken;
@@ -59,6 +65,18 @@ public class AuthService {
     @NonFinal
     @Value("${security.jwt.expiration-time-refresh}")
     long expRefreshToken;
+
+    @NonFinal
+    @Value("${security.jwt.expiration-time-access-admin}")
+    long expAccessTokenAdmin;
+
+    @NonFinal
+    @Value("${security.jwt.expiration-time-refresh-admin}")
+    long expRefreshTokenAdmin;
+
+    @NonFinal
+    @Value("${security.jwt.refresh-key-admin}")
+    String refreshKeyAdmin;
 
     @NonFinal
     @Value("${security.jwt.refresh-key}")
@@ -91,7 +109,7 @@ public class AuthService {
 
         // Generate unique identifier
         final String uuid = java.util.UUID.randomUUID().toString();
-
+        System.out.println(uuid);
         // Store email and password temporarily in Redis with a TTL of 5 minutes
         redisService.setKeyinMinutes(uuid + ":email", userSignupByEmail.getEmail(), 5);
         redisService.setKeyinMinutes(uuid + ":password", userSignupByEmail.getPassword(), 5);
@@ -135,7 +153,7 @@ public class AuthService {
         voucherService.addVouchersToNewUser(newUser);
     }
 
-    public void completeSignupEmail(String token) {
+    public TokenPair completeSignupEmail(String token) {
         Boolean isExist = redisService.checkKeyExist(token + ":email");
         if (isExist.booleanValue()) {
             String email = (String) redisService.getKey(token + ":email");
@@ -146,6 +164,7 @@ public class AuthService {
             userRepository.save(newUser);
             addChatBoxForUser(newUser.getId());
             voucherService.addVouchersToNewUser(newUser);
+            return generateTokens(newUser, false);
         } else
             throw new CustomException(ErrorCode.TOKEN_EXPIRED);
     }
@@ -237,6 +256,69 @@ public class AuthService {
         chatBox.setUserId(userId);
         // chatBox.setAdminId(adminId);
         chatBoxRepository.save(chatBox);
+    }
+
+    public TokenPair refreshTokenUser(RefreshTokenDTO refreshTokenDTO) {
+        return refreshToken(refreshTokenDTO, refreshKey, false);
+    }
+
+    private TokenPair refreshToken(RefreshTokenDTO refreshTokenDTO, String refreshKey, boolean isAdmin) {
+        validateRefreshToken(refreshTokenDTO, refreshKey);
+        User user = findUserByToken(refreshTokenDTO.refreshToken(), refreshKey, isAdmin);
+
+        String hashToken = HashValueUtil.hashString(refreshTokenDTO.refreshToken());
+        if (isTokenUsed(user, hashToken)) {
+            handleUsedToken(user);
+            throw new CustomException(ErrorCode.INVALID_REFRESHTOKEN);
+        }
+
+        updateUserWithNewRefreshToken(user, hashToken);
+        return generateTokens(user, isAdmin);
+    }
+
+    private void handleUsedToken(User user) {
+        String newKey = RamdomKeyUtil.generateRandomKey();
+        user.setKeyToken(newKey);
+        user.setRefreshTokenUsed(new HashSet<>());
+        redisService.setKey("keyToken:" + user.getId(), newKey);
+        userRepository.save(user);
+    }
+
+    private TokenPair generateTokens(User user, boolean isAdmin) {
+        TokenPair tokens = new TokenPair();
+        tokens.setAccessToken(
+                jwtService.generateToken(user, user.getKeyToken(), isAdmin ? expAccessTokenAdmin : expAccessToken));
+        tokens.setRefreshToken(jwtService.generateToken(user, isAdmin ? refreshKeyAdmin : refreshKey,
+                isAdmin ? expRefreshTokenAdmin : expRefreshToken));
+        return tokens;
+    }
+
+    private void updateUserWithNewRefreshToken(User user, String hashToken) {
+        Set<String> refreshTokens = user.getRefreshTokenUsed();
+        refreshTokens.add(hashToken);
+        user.setRefreshTokenUsed(refreshTokens);
+        userRepository.save(user);
+    }
+
+    private boolean isTokenUsed(User user, String hashToken) {
+        return user.getRefreshTokenUsed().contains(hashToken);
+    }
+
+    private User findUserByToken(String token, String refreshKey, boolean isAdmin) {
+        String userId = jwtService.extractIdUser(token, refreshKey);
+        if (isAdmin) {
+            return userRepository.findByIdAndRole(userId, RoleUser.ADMIN_ROLE)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_EXISTED));
+        } else {
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_EXISTED));
+        }
+    }
+
+    private void validateRefreshToken(RefreshTokenDTO refreshTokenDTO, String refreshKey) {
+        if (!jwtService.isTokenValid(refreshTokenDTO.refreshToken(), refreshKey)) {
+            throw new CustomException(ErrorCode.INVALID_REFRESHTOKEN);
+        }
     }
 
 }

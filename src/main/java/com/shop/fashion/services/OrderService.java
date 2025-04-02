@@ -2,8 +2,11 @@ package com.shop.fashion.services;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.hibernate.Hibernate;
@@ -28,6 +31,7 @@ import com.shop.fashion.entities.OrderProduct;
 import com.shop.fashion.entities.Payment;
 import com.shop.fashion.entities.Product;
 import com.shop.fashion.entities.ProductSizeColor;
+import com.shop.fashion.entities.RecommendProduct;
 import com.shop.fashion.entities.User;
 import com.shop.fashion.entities.Voucher;
 import com.shop.fashion.enums.OrderStatus;
@@ -39,7 +43,9 @@ import com.shop.fashion.mappers.OrderMapper;
 import com.shop.fashion.mappers.VoucherMapper;
 import com.shop.fashion.repositories.CartProductSizeColorRepository;
 import com.shop.fashion.repositories.OrderRepository;
+import com.shop.fashion.repositories.PaymentRepository;
 import com.shop.fashion.repositories.ProductSizeColorRepository;
+import com.shop.fashion.repositories.RecommendProductRepository;
 import com.shop.fashion.repositories.UserRepository;
 import com.shop.fashion.repositories.VoucherRepository;
 
@@ -58,6 +64,8 @@ public class OrderService {
     private final ProductSizeColorRepository productSizeColorRepository;
     private final RedisService redisService;
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
+    private final RecommendProductRepository recommendProductRepository;
     @Autowired
     @Lazy
     private OrderService self;
@@ -103,7 +111,7 @@ public class OrderService {
     @Transactional(rollbackOn = CustomException.class)
     public DetailOrderDTO save(OrderDTO order, HttpServletRequest request) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-
+        Set<Long> idProducts = new HashSet<>();
         User user = userRepository.findByIdWithCart(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ERROR_SYSTEM));
         Cart cart = user.getCart();
@@ -126,7 +134,7 @@ public class OrderService {
                 productLocked = redisService.setnxProduct("lock_" + productSizeColorId,
                         i, expired);
                 if (productLocked) {
-                    processProductOrder(userId, productSizeColorId, cpsc, productOrders, cart);
+                    processProductOrder(userId, productSizeColorId, cpsc, productOrders, cart, idProducts);
                     redisService.deleteKey("lock_" + productSizeColorId);
                     break;
                 } else {
@@ -158,17 +166,46 @@ public class OrderService {
                     newOrder.getTotalAmount(), newOrder.getId());
             newOrder.setUrlPayment(urlPayment);
         }
+        saveForRecommendProduct(idProducts);
         return OrderMapper.INSTANCE.toDetailOrderDTO(newOrder);
     }
 
+    private void saveForRecommendProduct(Set<Long> idProducts) {
+        List<Long> productList = new ArrayList<>(idProducts); // Convert Set to List for indexing
+        int length = productList.size();
+
+        for (int i = 0; i < length; i++) {
+            for (int j = i + 1; j < length; j++) {
+                Long p1 = productList.get(i);
+                Long p2 = productList.get(j);
+
+                Optional<RecommendProduct> existingRp = recommendProductRepository.findByProductPair(p1, p2);
+
+                if (existingRp.isPresent()) {
+                    RecommendProduct rp = existingRp.get();
+                    rp.setOccurrences(rp.getOccurrences() + 1);
+                    recommendProductRepository.save(rp);
+                } else {
+                    RecommendProduct newRp = RecommendProduct.builder()
+                            .p1(p1)
+                            .p2(p2)
+                            .occurrences(1L)
+                            .build();
+                    recommendProductRepository.save(newRp);
+                }
+            }
+        }
+    }
+
     private void processProductOrder(String userId, Long productSizeColorId, CartProductSizeColor cpsc,
-            Set<OrderProduct> productOrders, Cart cart) {
+            Set<OrderProduct> productOrders, Cart cart, Set<Long> idProducts) {
         int quantityStock = (int) redisService.getKey("productSizeColor:" + productSizeColorId);
         int quantityBuy = cpsc.getQuantity();
         ProductSizeColor productSizeColor = productSizeColorRepository
                 .findByIdFetchProductSizeAndFetchProduct(productSizeColorId)
                 .orElseThrow();
         Product product = productSizeColor.getProductSize().getProduct();
+        idProducts.add(product.getId());
         if (quantityStock >= quantityBuy) {
             OrderProduct orderProduct = OrderProduct.builder()
                     .productSizeColor(productSizeColor)
@@ -176,6 +213,8 @@ public class OrderService {
                     .price(product.getPrice() * (100 - product.getPercent()) / 100)
                     .name(product.getName())
                     .image(product.getImage())
+                    .color(productSizeColor.getColor().getName())
+                    .size(productSizeColor.getProductSize().getSize().getName())
                     .build();
             productOrders.add(orderProduct);
             redisService.incrementKey("productSizeColor:" + productSizeColor.getId(), -quantityBuy);
@@ -196,15 +235,20 @@ public class OrderService {
         }
     }
 
-    private Order createNewOrder(OrderDTO orderDTO,
-            Set<OrderProduct> productOrders, User user, Payment payment) {
+    private Order createNewOrder(OrderDTO orderDTO, Set<OrderProduct> productOrders, User user, Payment payment) {
         Order order = OrderMapper.INSTANCE.toOrder(orderDTO);
         order.setOrderStatus(OrderStatus.PENDING);
         order.setUser(user);
         order.setPayment(payment);
-        payment.setOrder(order);
-        return orderRepository.save(order);
 
+        // Save order first to generate ID
+        orderRepository.save(order);
+
+        // Set order ID in payment and save it
+        payment.setOrderId(order.getId());
+        paymentRepository.save(payment);
+
+        return order;
     }
 
     public void confirmPaymentOrder(Map<String, String> reqParams) {
@@ -221,7 +265,6 @@ public class OrderService {
             payment.setAmount(Long.parseLong(reqParams.get("vnp_Amount")) / 2500000);
             payment.setTransactionID(reqParams.get("vnp_TransactionNo"));
             payment.setPaymentStatus(PaymentStatus.PAID);
-            payment.setTranNew(true);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
             payment.setCreatedAt(LocalDateTime.parse(reqParams.get("vnp_PayDate"), formatter));
             orderRepository.save(order);

@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.hibernate.search.engine.search.sort.dsl.SortOrder;
 import org.springframework.data.domain.Page;
@@ -15,20 +17,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.shop.fashion.dtos.dtosReq.ProductAddDTO;
+import com.shop.fashion.dtos.dtosRes.ColorQuantityRes;
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
 import com.shop.fashion.dtos.dtosRes.ProductDetailDTO;
+import com.shop.fashion.dtos.dtosRes.ProductSizeQuantity;
+import com.shop.fashion.dtos.dtosRes.ProductsHomePage;
 import com.shop.fashion.entities.Brand;
 import com.shop.fashion.entities.Category;
 import com.shop.fashion.entities.DetailProduct;
 import com.shop.fashion.entities.Product;
 import com.shop.fashion.entities.ProductSize;
+import com.shop.fashion.entities.RecommendProduct;
 import com.shop.fashion.entities.Size;
 import com.shop.fashion.entities.SubCategory;
 import com.shop.fashion.exceptions.CustomException;
 import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.ProductMapper;
 import com.shop.fashion.repositories.BrandRepository;
+import com.shop.fashion.repositories.CategoryRepository;
 import com.shop.fashion.repositories.ProductRepository;
+import com.shop.fashion.repositories.RecommendProductRepository;
 import com.shop.fashion.repositories.SubCategoryRepository;
 
 import jakarta.transaction.Transactional;
@@ -44,7 +52,9 @@ public class ProductService {
     private final SubCategoryRepository subCategoryRepository;
     private final BrandRepository brandRepository;
     private final ProductRepository productRepository;
+    private final RecommendProductRepository recommendProductRepository;
     private final RedisService redisService;
+    private final CategoryRepository categoryRepository;
 
     @NonFinal
     private final String uploadDir = "uploads/";
@@ -134,7 +144,7 @@ public class ProductService {
 
     public Page<ProductDTO> getDraftProducts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Product> products = productRepository.findAllByIsDraftOrderByCreatedDateDesc(true,
+        Page<Product> products = productRepository.findAllByStatusOrderByCreatedDate(true,
                 pageable);
         Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
         return productDTOs;
@@ -189,11 +199,11 @@ public class ProductService {
         ProductDetailDTO productDetailDTO = ProductMapper.INSTANCE.toProductDetailDTO(product);
         productDetailDTO.getProductSizes().forEach(productSize -> {
             var quantityPZ = redisService.getKey("productSize:" + productSize.getId());
-            // if (quantityPZ == null) {
-            // // will be removed
-            // quantityPZ = processing(productSize);
-            // redisService.setKey("productSize:" + productSize.getId(), quantityPZ);
-            // }
+            if (quantityPZ == null) {
+                // will be removed
+                quantityPZ = processing(productSize);
+                redisService.setKey("productSize:" + productSize.getId(), quantityPZ);
+            }
             productSize.setQuantity((int) quantityPZ);
             if ((int) quantityPZ != 0) {
                 productSize.getProductSizeColors().forEach(productSizeColor -> {
@@ -210,6 +220,22 @@ public class ProductService {
         return productDetailDTO;
     }
 
+    public int processing(ProductSizeQuantity productSize) {
+        int count = (int) (Math.random() * 4);
+        if (count % 4 == 0) {
+            redisService.setKey("productSize:" + productSize.getId(), 0);
+            count++;
+            return 0;
+        }
+        int totalQuantity = 0;
+        for (ColorQuantityRes productSizeColor : productSize.getProductSizeColors()) {
+            int quantity = (int) (Math.random() * 80);
+            totalQuantity += quantity;
+            redisService.setKey("productSizeColor:" + productSizeColor.getId(), quantity);
+        }
+        return totalQuantity;
+    }
+
     public Page<ProductDTO> searchPublicProductsByName(@NotBlank(message = "query is required") String name, int size,
             int page, String sortBy,
             String orderBy) {
@@ -219,5 +245,44 @@ public class ProductService {
                 sortOrder);
         Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
         return productDTOs;
+    }
+
+    public List<ProductDTO> getRelatedProducts(Long id) {
+        Pageable top8 = PageRequest.of(0, 8);
+        List<RecommendProduct> recommendProducts = recommendProductRepository.findByProduct(id, top8);
+
+        if (recommendProducts.isEmpty()) {
+            return ProductMapper.INSTANCE.toProductDTOs(
+                    productRepository.findAllByStatusOrderByCreatedDate(true, top8).getContent());
+        }
+
+        List<Product> products = recommendProducts.stream()
+                .map(rp -> (rp.getP1().equals(id) ? rp.getP2() : rp.getP1())) // Get related product ID
+                .map(idRelated -> productRepository.findByIdAndStatus(idRelated, true)) // Fetch product
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+
+        return ProductMapper.INSTANCE.toProductDTOs(products);
+    }
+
+    public List<ProductsHomePage> getListProductsForHomePage() {
+        List<Category> categories = categoryRepository.findAll();
+        List<ProductsHomePage> listProductsHomePage = new LinkedList<>();
+        for (Category category : categories) {
+            List<ProductDTO> products = getPublicNewestProductsByCategory(10,
+                    category.getId());
+            listProductsHomePage.add(new ProductsHomePage(category.getName(), products));
+        }
+        return listProductsHomePage;
+    }
+
+    public List<ProductDTO> getPublicNewestProductsByCategory(int size,
+            Long idCategory) {
+        Pageable pageable = PageRequest.of(0, size);
+        Page<Product> products = productRepository.findAllByStatusAndCategoryIdOrderByCreatedDateDesc(true,
+                idCategory, pageable);
+        Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
+        return productDTOs.getContent();
     }
 }

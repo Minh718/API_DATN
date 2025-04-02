@@ -2,6 +2,8 @@ package com.shop.fashion.entities;
 
 import java.time.LocalDateTime;
 
+import com.shop.fashion.utils.DateTimeUtil;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,5 +19,5 @@ public class Message {
     private Long idChatBox;
     private String idSend;
     private String message;
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt = DateTimeUtil.getCurrentVietnamTime();
 }

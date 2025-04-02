@@ -25,6 +25,7 @@ import com.shop.fashion.dtos.dtosRes.ApiRes;
 import com.shop.fashion.dtos.dtosRes.MetadataDTO;
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
 import com.shop.fashion.dtos.dtosRes.ProductDetailDTO;
+import com.shop.fashion.dtos.dtosRes.ProductsHomePage;
 import com.shop.fashion.services.ProductService;
 
 import jakarta.validation.constraints.NotNull;
@@ -51,6 +52,14 @@ public class ProductController {
                                 .result(productService.addProduct(productDTO))
                                 .message("Add product successfully")
                                 .build();
+        }
+
+        @Cacheable(value = "ListProductsForHomePage")
+        @GetMapping("/public/homepage")
+        public ApiRes<List<ProductsHomePage>> getListProductsForHomePage() {
+                return ApiRes.<List<ProductsHomePage>>builder().code(1000)
+                                .message("get product detail success")
+                                .result(productService.getListProductsForHomePage()).build();
         }
 
         @DeleteMapping("/{idProduct}")
@@ -100,7 +109,7 @@ public class ProductController {
 
         }
 
-        @Cacheable(value = "publicProductsBySubCategory", key = "#page + '-' + #size + '-' + #thump + '-' + #sortBy + '-' + #order", condition = "#page == 0")
+        @Cacheable(value = "publicProductsBySubCategory", key = "#page + '-' + #size + '-' + #thump + '-' + #sortBy + '-' + #order + '-' + #minPrice + '-' + #maxPrice", condition = "#page == 0")
         @GetMapping("/public/subCategory")
         public ApiMetaRes<List<ProductDTO>> getPublicProductsBySubCategory(
                         @RequestParam(defaultValue = "0") int page,
@@ -108,9 +117,9 @@ public class ProductController {
                         @RequestParam String thump,
                         @RequestParam(defaultValue = "createdDate") String sortBy,
                         @RequestParam(defaultValue = "desc") String order,
-                        @RequestParam Double minPrice, // Added
-                        @RequestParam Double maxPrice) {
-
+                        @RequestParam(required = false) Double minPrice, // Added
+                        @RequestParam(required = false) Double maxPrice) {
+                System.err.println(minPrice);
                 Page<ProductDTO> productPage = productService.getPublicProductsBySubCategory(page, size, thump, sortBy,
                                 order, minPrice, maxPrice);
                 MetadataDTO metadata = new MetadataDTO(
@@ -132,8 +141,8 @@ public class ProductController {
                         @RequestParam(defaultValue = "10") int size,
                         @RequestParam(defaultValue = "createdDate") String sortBy,
                         @RequestParam(defaultValue = "desc") String order,
-                        @RequestParam Double minPrice, // Added
-                        @RequestParam Double maxPrice) {
+                        @RequestParam(required = false) Double minPrice, // Added
+                        @RequestParam(required = false) Double maxPrice) {
 
                 Page<ProductDTO> productPage = productService.getPublicProducts(page, size, sortBy,
                                 order, minPrice, maxPrice);
@@ -155,5 +164,12 @@ public class ProductController {
                 return ApiRes.<ProductDetailDTO>builder().code(1000)
                                 .message("get product detail success")
                                 .result(productService.getProductDetail(id)).build();
+        }
+
+        @GetMapping("/related/{id}")
+        public ApiRes<List<ProductDTO>> getRelatedProducts(@PathVariable long id) {
+                return ApiRes.<List<ProductDTO>>builder().code(1000)
+                                .message("get product detail success")
+                                .result(productService.getRelatedProducts(id)).build();
         }
 }

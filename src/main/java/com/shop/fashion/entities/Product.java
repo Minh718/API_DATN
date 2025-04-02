@@ -4,6 +4,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+
 import com.shop.fashion.utils.DateTimeUtil;
 
 import jakarta.persistence.CascadeType;
@@ -30,12 +34,14 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Indexed
 @Entity
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @FullTextField
     private String name;
     private int price;
     private int percent;
@@ -48,6 +54,7 @@ public class Product {
     @Builder.Default
     private LocalDateTime createdDate = DateTimeUtil.getCurrentVietnamTime();
     @Builder.Default
+    @GenericField
     private boolean status = true;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subCate_id", referencedColumnName = "id")

@@ -1,15 +1,8 @@
 package com.shop.fashion.dtos.dtosRes;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Data
 public class SizeDTO {
     private Long id;
     private String name;

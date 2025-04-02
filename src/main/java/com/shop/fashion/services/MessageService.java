@@ -20,6 +20,7 @@ import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.MessageMapper;
 import com.shop.fashion.repositories.ChatBoxRepository;
 import com.shop.fashion.repositories.MessageRepository;
+import com.shop.fashion.utils.DateTimeUtil;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +45,7 @@ public class MessageService {
         ChatBox chatBox = chatBoxRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_BOX_NOT_FOUND));
         chatBox.setAdminReaded(false);
-        chatBox.setUpdatedAt(LocalDateTime.now());
+        chatBox.setUpdatedAt(DateTimeUtil.getCurrentVietnamTime());
         Message newMessage = new Message();
         newMessage.setIdChatBox(chatBox.getId());
         newMessage.setIdSend(userId);
@@ -80,7 +81,7 @@ public class MessageService {
         ChatBox chatBox = chatBoxRepository.findById(adminSendMess.getChatBoxId())
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_BOX_NOT_FOUND));
         chatBox.setUserReaded(false);
-        chatBox.setUpdatedAt(LocalDateTime.now());
+        chatBox.setUpdatedAt(DateTimeUtil.getCurrentVietnamTime());
         Message newMessage = new Message();
         newMessage.setIdChatBox(chatBox.getId());
         newMessage.setIdSend(userId);

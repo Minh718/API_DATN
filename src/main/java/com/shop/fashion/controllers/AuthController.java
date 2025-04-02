@@ -2,10 +2,8 @@ package com.shop.fashion.controllers;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,10 +13,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.shop.fashion.dtos.dtosReq.RefreshTokenDTO;
 import com.shop.fashion.dtos.dtosReq.UserSignin;
 import com.shop.fashion.dtos.dtosReq.UserSignupByEmail;
 import com.shop.fashion.dtos.dtosReq.UserSignupByPhone;
 import com.shop.fashion.dtos.dtosRes.ApiRes;
+import com.shop.fashion.dtos.dtosRes.TokenPair;
 import com.shop.fashion.dtos.dtosRes.UserInfoToken;
 import com.shop.fashion.services.AuthService;
 
@@ -37,7 +37,7 @@ public class AuthController {
         private final AuthService authService;
 
         @NonFinal
-        @Value("${frontend_host:http://localhost:5173")
+        @Value("${frontend_host}")
         private String frontend_host;
 
         @PostMapping("/signup/email")
@@ -50,7 +50,7 @@ public class AuthController {
                                                 .message("Please check email to complete your registration").build());
         }
 
-        @PostMapping("/signup/email")
+        @PostMapping("/signup/phone")
         public ResponseEntity<ApiRes<Void>> userSignupByPhone(@Valid @RequestBody UserSignupByPhone userSignupByPhone)
                         throws IOException {
                 authService.handleUserSignupByPhone(userSignupByPhone);
@@ -60,7 +60,7 @@ public class AuthController {
                                                 .message("Register successfully").build());
         }
 
-        @GetMapping("/email/getotp/{phone}")
+        @GetMapping("/phone/getotp/{phone}")
         public ResponseEntity<ApiRes<Void>> handleGetOtpForPhoneNumber(
                         @Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits") @PathVariable String phone)
                         throws IOException {
@@ -71,12 +71,25 @@ public class AuthController {
                                                 .message("Get otp successfully").build());
         }
 
+        @PostMapping("/refreshtoken")
+        public ApiRes<TokenPair> refreshtoken(@Valid @RequestBody RefreshTokenDTO refreshTokenDTO) {
+                return ApiRes.<TokenPair>builder()
+                                .code(1000)
+                                .message("Fresh token successfully")
+                                .result(authService.refreshTokenUser(refreshTokenDTO))
+                                .build();
+        }
+
         @GetMapping("/email/confirm")
         public void completeSignupEmail(
                         @NotNull(message = "Token cannot be null") @RequestParam String token,
                         HttpServletResponse response) throws IOException {
-                authService.completeSignupEmail(token);
-                response.sendRedirect(frontend_host + "/login");
+                TokenPair tokens = authService.completeSignupEmail(token);
+
+                System.err.println(frontend_host + "/authenticate?accessToken=" + tokens.getAccessToken()
+                                + "&refreshToken=" + tokens.getRefreshToken());
+                response.sendRedirect(frontend_host + "/authenticate?accessToken=" + tokens.getAccessToken()
+                                + "&refreshToken=" + tokens.getRefreshToken());
         }
 
         @PostMapping("/signin")

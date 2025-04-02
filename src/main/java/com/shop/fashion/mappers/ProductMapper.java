@@ -1,5 +1,7 @@
 package com.shop.fashion.mappers;
 
+import java.util.List;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
@@ -26,4 +28,5 @@ public interface ProductMapper {
 
     ProductDetailDTO toProductDetailDTO(Product product);
 
+    List<ProductDTO> toProductDTOs(List<Product> products);
 }

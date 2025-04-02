@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import com.shop.fashion.utils.DateTimeUtil;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -53,7 +55,7 @@ public class User {
     private String idUserGithub = "0";
     private LocalDate dob;
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt = DateTimeUtil.getCurrentVietnamTime();
     @Builder.Default
     private boolean isactive = true;
 
