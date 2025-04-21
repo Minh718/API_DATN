@@ -1,5 +1,6 @@
 package com.shop.fashion.services;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import com.shop.fashion.entities.Voucher;
 import com.shop.fashion.enums.OrderStatus;
 import com.shop.fashion.enums.PaymentMethod;
 import com.shop.fashion.enums.PaymentStatus;
+import com.shop.fashion.enums.ShippingStatus;
 import com.shop.fashion.exceptions.CustomException;
 import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.OrderMapper;
@@ -48,6 +50,7 @@ import com.shop.fashion.repositories.ProductSizeColorRepository;
 import com.shop.fashion.repositories.RecommendProductRepository;
 import com.shop.fashion.repositories.UserRepository;
 import com.shop.fashion.repositories.VoucherRepository;
+import com.shop.fashion.utils.DateTimeUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
@@ -80,6 +83,15 @@ public class OrderService {
                 .map(OrderMapper.INSTANCE::toOrderResDTO);
     }
 
+    public Page<OrderResDTO> getOrdersByOrderStatusForAdmin(int page, int size, OrderStatus orderStatus) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Order> orders = orderRepository.findAllByOrderStatusOrderByCreatedAtDesc(orderStatus,
+                pageable);
+
+        return orders
+                .map(OrderMapper.INSTANCE::toOrderResDTO);
+    }
+
     public Page<OrderResDTO> getAllOrders(int page, int size) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         Pageable pageable = PageRequest.of(page, size);
@@ -89,7 +101,29 @@ public class OrderService {
                 .map(OrderMapper.INSTANCE::toOrderResDTO);
     }
 
+    public Page<OrderResDTO> getAllOrdersForAdmin(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Order> orders = orderRepository.findAllOrderByCreatedAtDesc(pageable);
+
+        return orders
+                .map(OrderMapper.INSTANCE::toOrderResDTO);
+    }
+
     public DetailOrderDTO getDetailOrder(Long id) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Order order = orderRepository
+                .findByIdAndUserIdFetchOrderProductFetchProductSizeColorFetchProductSize(id, userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REQUEST));
+        DetailOrderDTO reOrder = OrderMapper.INSTANCE.toDetailOrderDTO(order);
+        if (order.getCode() != null) {
+            Voucher voucher = voucherRepository.findByCode(order.getCode()).orElseThrow();
+            reOrder.setVoucher(VoucherMapper.INSTANCE.toVoucherResDTO(voucher));
+        }
+        return reOrder;
+    }
+
+    public DetailOrderDTO getDetailOrderAdmin(Long id) {
         Order order = orderRepository.findByIdFetchOrderProductFetchProductSizeColorFetchProductSize(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REQUEST));
         DetailOrderDTO reOrder = OrderMapper.INSTANCE.toDetailOrderDTO(order);
@@ -280,8 +314,88 @@ public class OrderService {
         for (OrderProduct orderProduct : orderProducts) {
             ProductSizeColor productSizeColor = orderProduct.getProductSizeColor();
             redisService.incrementKey("productSizeColor:" + productSizeColor.getId(), orderProduct.getQuantity());
+            redisService.incrementKey("productSize:" + productSizeColor.getProductSize().getId(),
+                    orderProduct.getQuantity());
         }
         order.setOrderStatus(OrderStatus.CANCELED);
+        orderRepository.save(order);
+    }
+
+    public long getNumberPaymentingOrder() {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<Order> orders = orderRepository.findAllByOrderStatusAndUserId(OrderStatus.PENDING,
+                userId);
+        long length = orders.size();
+        for (Order order : orders) {
+            if (hasPaymentTimeElapsed(order)) {
+                self.rollbackOnOrderCancellation(order);
+                length -= 1;
+            }
+        }
+        return length;
+
+    }
+
+    private boolean hasPaymentTimeElapsed(Order order) {
+        LocalDateTime now = DateTimeUtil.getCurrentVietnamTime();
+        Duration duration = Duration.between(order.getCreatedAt(), now);
+
+        return duration.toMinutes() > 15;
+    }
+
+    public OrderResDTO adminUpdateStatusOrder(Long id, OrderStatus orderStatus) {
+        Order order = orderRepository.findByIdAndOrderStatusNot(id, OrderStatus.CANCELED)
+                .orElseThrow(() -> new CustomException(ErrorCode.BAD_REQUEST));
+        order.setOrderStatus(orderStatus);
+        if (orderStatus == OrderStatus.DELIVERED)
+            order.setShippingStatus(ShippingStatus.DELIVERED);
+        else if (orderStatus == OrderStatus.SHIPPED)
+            order.setShippingStatus(ShippingStatus.IN_TRANSIT);
+        else
+            order.setShippingStatus(ShippingStatus.NOT_SHIPPED);
+        orderRepository.save(order);
+
+        return OrderMapper.INSTANCE.toOrderResDTO(order);
+    }
+
+    public void adminCancelOrder(Long id) {
+        Order order = orderRepository.findByIdAndOrderStatusNot(id, OrderStatus.CANCELED)
+                .orElseThrow(() -> new CustomException(ErrorCode.BAD_REQUEST));
+        order.setOrderStatus(OrderStatus.CANCELED);
+        order.setShippingStatus(ShippingStatus.RETURNED);
+        orderRepository.save(order);
+        Hibernate.initialize(order.getOrderProducts());
+        self.rollbackOnOrderCancellation(order);
+    }
+
+    public void userCancelOrder(Long id) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Order order = orderRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.BAD_REQUEST));
+
+        if (order.getOrderStatus() != OrderStatus.PENDING && order.getOrderStatus() != OrderStatus.CONFIRMED) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
+        }
+
+        order.setOrderStatus(OrderStatus.CANCELED);
+        order.setShippingStatus(ShippingStatus.RETURNED);
+        orderRepository.save(order);
+        Hibernate.initialize(order.getOrderProducts());
+        self.rollbackOnOrderCancellation(order);
+    }
+
+    public void confirmReceiptOrderSuccessfully(Long id) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Order order = orderRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.BAD_REQUEST));
+
+        if (order.getShippingStatus() != ShippingStatus.DELIVERED) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
+        }
+
+        order.setOrderStatus(OrderStatus.DELIVERED);
         orderRepository.save(order);
     }
 }

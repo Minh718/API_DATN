@@ -2,15 +2,19 @@ package com.shop.fashion.entities;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.shop.fashion.enums.TypeVoucher;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -37,4 +41,6 @@ public class Voucher implements Serializable {
     private LocalDate endDate;
     private LocalDate createdAt = LocalDate.now();
     private LocalDate updatedAt = LocalDate.now();
+    @OneToMany(mappedBy = "voucher", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserVoucher> userVouchers = new ArrayList<>();
 }

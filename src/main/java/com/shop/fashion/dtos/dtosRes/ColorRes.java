@@ -7,5 +7,5 @@ public class ColorRes {
     private Long id;
 
     private String name;
-    private String color;
+    private String code;
 }

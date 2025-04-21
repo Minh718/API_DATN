@@ -19,5 +19,5 @@ public interface UserVoucherRepository extends JpaRepository<UserVoucher, UserVo
     List<Voucher> findAllByIdUserAndStillApply(@Param("idUser") String idUser);
 
     @Query("SELECT uv.voucher FROM UserVoucher uv WHERE uv.user.id = :idUser AND uv.voucher.startDate <= CURRENT_TIMESTAMP AND uv.voucher.endDate >= CURRENT_TIMESTAMP AND uv.voucher.isActive = true AND uv.isUsed = false")
-    Page<Voucher> findAllByIdUserAndStillApply(@Param("idUser") String idUser, Pageable pageable);
+    List<Voucher> findAllByIdUserAndStillApplyPageable(@Param("idUser") String idUser, Pageable pageable);
 }

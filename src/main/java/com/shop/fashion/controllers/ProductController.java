@@ -19,12 +19,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.shop.fashion.dtos.dtosReq.IdProductSizeIdColorDTO;
 import com.shop.fashion.dtos.dtosReq.ProductAddDTO;
+import com.shop.fashion.dtos.dtosReq.ProductSizeColorQuantityDTO;
 import com.shop.fashion.dtos.dtosRes.ApiMetaRes;
 import com.shop.fashion.dtos.dtosRes.ApiRes;
 import com.shop.fashion.dtos.dtosRes.MetadataDTO;
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
+import com.shop.fashion.dtos.dtosRes.ProductDetailAdmin;
 import com.shop.fashion.dtos.dtosRes.ProductDetailDTO;
+import com.shop.fashion.dtos.dtosRes.ProductTable;
 import com.shop.fashion.dtos.dtosRes.ProductsHomePage;
 import com.shop.fashion.services.ProductService;
 
@@ -60,6 +64,37 @@ public class ProductController {
                 return ApiRes.<List<ProductsHomePage>>builder().code(1000)
                                 .message("get product detail success")
                                 .result(productService.getListProductsForHomePage()).build();
+        }
+
+        // @Caching(evict = {
+        // @CacheEvict(value = "productsBySubCategory", allEntries = true),
+        // @CacheEvict(value = "ListProductsForHomePage", allEntries = true)
+        // })
+        @PostMapping("/updateQuantity")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiRes<Void>> updateQuantityForProduct(
+                        @RequestBody ProductSizeColorQuantityDTO updateQuantityDTO) {
+                productService.updateQuantityForProduct(updateQuantityDTO);
+                return ResponseEntity.ok().body(ApiRes.<Void>builder()
+                                .code(1000)
+                                .message("update quantity successfully")
+                                .build());
+        }
+
+        // @Caching(evict = {
+        // @CacheEvict(value = "productsBySubCategory", allEntries = true),
+        // @CacheEvict(value = "ListProductsForHomePage", allEntries = true)
+        // })
+
+        @PostMapping("/addQuantity")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiRes<Void>> adQuantityForProduct(
+                        @RequestBody IdProductSizeIdColorDTO updateQuantityDTO) {
+                productService.addQuantityForProduct(updateQuantityDTO);
+                return ResponseEntity.ok().body(ApiRes.<Void>builder()
+                                .code(1000)
+                                .message("add quantity for product successfully")
+                                .build());
         }
 
         @DeleteMapping("/{idProduct}")
@@ -133,6 +168,55 @@ public class ProductController {
                                 .result(productPage.getContent())
                                 .metadata(metadata)
                                 .build();
+        }
+
+        @Caching(evict = {
+                        @CacheEvict(value = "productsBySubCategory", allEntries = true),
+                        @CacheEvict(value = "ListProductsForHomePage", allEntries = true)
+        })
+        @GetMapping("/publish/{id}")
+        @PreAuthorize("hasRole('ROLE_ADMIN')")
+        public ApiRes<Void> publishProduct(@PathVariable long id) {
+                return ApiRes.<Void>builder().code(1000)
+                                .message("public product success")
+                                .result(productService.publishProduct(id)).build();
+        }
+
+        @Caching(evict = {
+                        @CacheEvict(value = "productsBySubCategory", allEntries = true),
+                        @CacheEvict(value = "ListProductsForHomePage", allEntries = true)
+        })
+        @GetMapping("/draft/{id}")
+        @PreAuthorize("hasRole('ROLE_ADMIN')")
+        public ApiRes<Void> draftProduct(@PathVariable long id) {
+                return ApiRes.<Void>builder().code(1000)
+                                .message("draft product success")
+                                .result(productService.draftProduct(id)).build();
+        }
+
+        @GetMapping("/admin/all")
+        @PreAuthorize("hasRole('ROLE_ADMIN')")
+        public ApiMetaRes<List<ProductTable>> getProductsForAdminTable(
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "createdDate") String sortBy,
+                        @RequestParam(defaultValue = "desc") String order) {
+                Page<ProductTable> productPage = productService.getProductsForAdminTable(page, size, sortBy,
+                                order);
+                MetadataDTO metadata = new MetadataDTO(
+                                productPage.getTotalElements(),
+                                productPage.getTotalPages(),
+                                productPage.getNumber(),
+                                productPage.getSize());
+                return ApiMetaRes.<List<ProductTable>>builder().code(1000).message("lấy danh sách thành công")
+                                .result(productPage.getContent()).metadata(metadata).build();
+        }
+
+        @GetMapping("/admin/{id}")
+        public ApiRes<ProductDetailAdmin> getProductDetailAdmin(@PathVariable long id) {
+                return ApiRes.<ProductDetailAdmin>builder().code(1000)
+                                .message("get product detail success")
+                                .result(productService.getProductDetailAdmin(id)).build();
         }
 
         @GetMapping("/public")

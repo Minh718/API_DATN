@@ -33,11 +33,14 @@ public enum ErrorCode {
     BAD_REQUEST(1054, "BAD_REQUEST", HttpStatus.BAD_REQUEST),
     VOUCHER_NOT_ACTIVE(1055, "Voucher is not active", HttpStatus.BAD_REQUEST),
     VOUCHER_NOT_FOUND(1056, "Voucher not found", HttpStatus.NOT_FOUND),
+    SLIDE_NOT_FOUND(1056, "Slide not found", HttpStatus.NOT_FOUND),
     RECHECKOUT_FAILED(1057, "Recheckout failed", HttpStatus.BAD_REQUEST),
     ERROR_SYSTEM(1058, "System error", HttpStatus.INTERNAL_SERVER_ERROR),
     ERROR_PAYMENT(1059, "Error payment", HttpStatus.BAD_REQUEST),
     CHAT_BOX_NOT_FOUND(1060, "Chat box not found", HttpStatus.NOT_FOUND),
     INVALID_REFRESHTOKEN(1061, "Error Token, Please relogin", HttpStatus.BAD_REQUEST),
+    CATEGORY_NOT_EXISTED(1062, "Category not existed", HttpStatus.NOT_FOUND),
+    COLOR_NOT_EXISTED(1063, "Color not existed", HttpStatus.NOT_FOUND),
 
     QUANTITY_NOT_ENOUGH(1047, "Quantity not enough", HttpStatus.BAD_REQUEST);
 

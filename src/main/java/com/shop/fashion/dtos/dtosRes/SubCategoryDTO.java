@@ -10,9 +10,9 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class SubCategoryDTO {
     private Long id;
     private String name;
     private String thump;
-    private String image;
 }

@@ -25,8 +25,9 @@ public class SecurityConfig {
             "/api/product/public/*",
             "swagger-ui/**", "v3/api-docs/**", "swagger-ui.html", "swagger-ui/**",
             "/api/payment/vn-pay-callback", "/index-lucene-product",
-            "/api/product/public/homepage",
-            "/api/product/public/subCategory"
+            "/api/product/public/homepage", "api/slide/all/public",
+            "/api/product/public/subCategory",
+            "/images/**"
     };
     @Autowired
     private CustomJwtDecoder customJwtDecoder;

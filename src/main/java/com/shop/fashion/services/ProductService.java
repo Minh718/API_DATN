@@ -10,23 +10,30 @@ import java.util.stream.Collectors;
 
 import org.hibernate.search.engine.search.sort.dsl.SortOrder;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.shop.fashion.dtos.dtosReq.IdProductSizeIdColorDTO;
 import com.shop.fashion.dtos.dtosReq.ProductAddDTO;
+import com.shop.fashion.dtos.dtosReq.ProductSizeColorQuantityDTO;
 import com.shop.fashion.dtos.dtosRes.ColorQuantityRes;
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
+import com.shop.fashion.dtos.dtosRes.ProductDetailAdmin;
 import com.shop.fashion.dtos.dtosRes.ProductDetailDTO;
 import com.shop.fashion.dtos.dtosRes.ProductSizeQuantity;
+import com.shop.fashion.dtos.dtosRes.ProductTable;
 import com.shop.fashion.dtos.dtosRes.ProductsHomePage;
 import com.shop.fashion.entities.Brand;
 import com.shop.fashion.entities.Category;
+import com.shop.fashion.entities.Color;
 import com.shop.fashion.entities.DetailProduct;
 import com.shop.fashion.entities.Product;
 import com.shop.fashion.entities.ProductSize;
+import com.shop.fashion.entities.ProductSizeColor;
 import com.shop.fashion.entities.RecommendProduct;
 import com.shop.fashion.entities.Size;
 import com.shop.fashion.entities.SubCategory;
@@ -35,9 +42,13 @@ import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.mappers.ProductMapper;
 import com.shop.fashion.repositories.BrandRepository;
 import com.shop.fashion.repositories.CategoryRepository;
+import com.shop.fashion.repositories.ColorRepository;
 import com.shop.fashion.repositories.ProductRepository;
+import com.shop.fashion.repositories.ProductSizeColorRepository;
+import com.shop.fashion.repositories.ProductSizeRepository;
 import com.shop.fashion.repositories.RecommendProductRepository;
 import com.shop.fashion.repositories.SubCategoryRepository;
+import com.shop.fashion.utils.FileUploadUtil;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
@@ -54,7 +65,11 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final RecommendProductRepository recommendProductRepository;
     private final RedisService redisService;
+    private final SizeService sizeService;
+    private final ColorRepository colorRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductSizeRepository productSizeRepository;
+    private final ProductSizeColorRepository productSizeColorRepository;
 
     @NonFinal
     private final String uploadDir = "uploads/";
@@ -66,18 +81,11 @@ public class ProductService {
 
         Brand brand = brandRepository.findById(productAddDTO.brand_id())
                 .orElseThrow(() -> new CustomException(ErrorCode.BRAND_NOT_EXISTED));
-
-        List<ProductSize> productSizes = new LinkedList<>();
-        for (Size size : category.getSizes()) {
-            ProductSize productSize = new ProductSize();
-            productSize.setSize(size);
-            productSizes.add(productSize);
-        }
-        String nameImage = saveImage(productAddDTO.file());
+        String nameImage = FileUploadUtil.saveImage(productAddDTO.file());
 
         List<String> images = new LinkedList<>();
         for (MultipartFile file : productAddDTO.files()) {
-            images.add(saveImage(file));
+            images.add(FileUploadUtil.saveImage(file));
         }
 
         DetailProduct detailProduct = DetailProduct.builder()
@@ -99,41 +107,69 @@ public class ProductService {
                 .brand(brand)
                 .image(nameImage)
                 .detailProduct(detailProduct)
-                .productSizes(productSizes)
                 .build();
-        // Save product again to update the list of product sizes
+
+        List<ProductSize> productSizes = new LinkedList<>();
+        for (Size size : category.getSizes()) {
+            ProductSize productSize = new ProductSize();
+            productSize.setSize(size);
+            productSize.setProduct(product);
+            productSizes.add(productSize);
+        }
+
+        product.setProductSizes(productSizes);
+
         productRepository.save(product);
         return ProductMapper.INSTANCE.toProductDTO(product);
     }
 
-    private String saveImage(MultipartFile file) {
-        try {
-            if (file.isEmpty()) {
-                throw new RuntimeException("Image file is required");
-            }
-            validateFile(file);
-            // Create unique image name
-            String imageName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            Path path = Paths.get(uploadDir + imageName);
-
-            // Create directories if they do not exist
-            Files.createDirectories(path.getParent());
-
-            // Save the file to the directory
-            Files.write(path, file.getBytes());
-
-            return imageName;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to store image file", e);
+    @Transactional
+    public void updateQuantityForProduct(ProductSizeColorQuantityDTO productSizeColorDTO) {
+        if (productSizeColorDTO.getQuantity() < 0) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
         }
+        ProductSizeColor productSizeColor = productSizeColorRepository.findById(productSizeColorDTO.getPscId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_SIZE_COLOR_NOT_EXISTED));
+        int oldQuantity = (int) redisService.getKey("productSizeColor:" +
+                productSizeColor.getId());
+        int newQuantity = productSizeColorDTO.getQuantity();
+        redisService.setKey("productSizeColor:" + productSizeColor.getId(),
+                newQuantity);
+        redisService.incrementKey("productSize:" + productSizeColor.getProductSize().getId(), newQuantity -
+                oldQuantity);
     }
 
-    private void validateFile(MultipartFile file) {
-        String fileType = file.getContentType();
+    @Transactional
+    public void addQuantityForProduct(IdProductSizeIdColorDTO productSizeColorDTO) {
+        Color color = colorRepository.findById(productSizeColorDTO.getIdColor())
+                .orElseThrow(() -> new CustomException(ErrorCode.COLOR_NOT_EXISTED));
+        ProductSize productSize = productSizeRepository.findById(productSizeColorDTO.getIdProductSize())
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_SIZE_NOT_EXISTED));
+        productSizeColorRepository.findByProductSizeAndColor(productSize, color).ifPresent(productSizeColor -> {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
+        });
+        ProductSizeColor productSizeColor = ProductSizeColor.builder().color(color).productSize(productSize).build();
+        productSizeColorRepository.save(productSizeColor);
+        redisService.setKey("productSizeColor:" + productSizeColor.getId(), productSizeColorDTO.getQuantity());
+        redisService.incrementKey("productSize:" + productSize.getId(), productSizeColorDTO.getQuantity());
+    }
 
-        if (!fileType.equals("image/png") && !fileType.equals("image/jpeg")) {
-            throw new RuntimeException("Invalid file type. Only PNG and JPEG are allowed.");
-        }
+    public Void publishProduct(Long id) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_EXISTED));
+        product.setStatus(true);
+        productRepository.save(product);
+        return null;
+    }
+
+    public Void draftProduct(Long id) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_EXISTED));
+        product.setStatus(false);
+        productRepository.save(product);
+        return null;
     }
 
     public void deleteProduct(Long id) {
@@ -284,5 +320,41 @@ public class ProductService {
                 idCategory, pageable);
         Page<ProductDTO> productDTOs = products.map(ProductMapper.INSTANCE::toProductDTO);
         return productDTOs.getContent();
+    }
+
+    public Page<ProductTable> getProductsForAdminTable(int page, int size, String sortBy, String orderBy) {
+        Pageable pageable;
+        if (orderBy.equals("asc")) {
+            pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, sortBy));
+        } else {
+            System.err.println(sortBy);
+            pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
+        }
+        Page<ProductTable> products = productRepository.findAllProductForTable(pageable);
+        List<ProductTable> updatedList = products.getContent().stream()
+                .peek(dto -> {
+                    Long id = dto.getId();
+                    Product product = productRepository.findByIdAndFetchProductSizes(id).orElseThrow();
+
+                    int stockLeft = 0;
+                    for (ProductSize ps : product.getProductSizes()) {
+                        String key = "productSize:" + ps.getId();
+                        Object stock = redisService.getKey(key);
+                        stockLeft += (stock != null ? (int) stock : 0);
+                    }
+
+                    dto.setStockLeft(stockLeft);
+                })
+                .collect(Collectors.toList());
+        return new PageImpl<>(updatedList, pageable, products.getTotalElements());
+    }
+
+    public ProductDetailAdmin getProductDetailAdmin(Long id) {
+        Product product = productRepository.findByIdAndFetchDetailProduct(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_EXISTED));
+        ProductDetailAdmin productDetailAdmin = ProductMapper.INSTANCE.toProductDetailAdmin(product);
+        productDetailAdmin.getDetailProduct().getImages().add(product.getImage());
+        productDetailAdmin.setSizes(sizeService.getAllSizeOfProductForAdmin(id));
+        return productDetailAdmin;
     }
 }

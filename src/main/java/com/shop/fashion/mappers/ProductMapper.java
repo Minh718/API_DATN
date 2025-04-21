@@ -7,6 +7,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import com.shop.fashion.dtos.dtosRes.ProductDTO;
+import com.shop.fashion.dtos.dtosRes.ProductDetailAdmin;
 import com.shop.fashion.dtos.dtosRes.ProductDetailDTO;
 import com.shop.fashion.entities.Product;
 
@@ -29,4 +30,9 @@ public interface ProductMapper {
     ProductDetailDTO toProductDetailDTO(Product product);
 
     List<ProductDTO> toProductDTOs(List<Product> products);
+
+    @Mapping(target = "subCategory", source = "subCategory.name")
+    @Mapping(target = "brand", source = "brand.name")
+    @Mapping(target = "sizes", ignore = true)
+    ProductDetailAdmin toProductDetailAdmin(Product product);
 }

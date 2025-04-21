@@ -21,11 +21,21 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Query("SELECT o FROM Order o WHERE o.user.id = :userId ORDER BY o.createdAt DESC")
         Page<Order> findAllByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
+        @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
+        Page<Order> findAllOrderByCreatedAtDesc(Pageable pageable);
+
         @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderStatus = :orderStatus ORDER BY o.createdAt DESC")
         Page<Order> findAllByUserIdAndOrderStatusOrderByCreatedAtDesc(String userId, OrderStatus orderStatus,
                         Pageable pageable);
 
-        @Query("SELECT o FROM Order o JOIN FETCH o.orderProducts op JOIN FETCH op.productSizeColor psc JOIN FETCH psc.productSize WHERE o.id = :id ")
+        @Query("SELECT o FROM Order o WHERE o.orderStatus = :orderStatus ORDER BY o.createdAt DESC")
+        Page<Order> findAllByOrderStatusOrderByCreatedAtDesc(OrderStatus orderStatus,
+                        Pageable pageable);
+
+        @Query("SELECT o FROM Order o JOIN FETCH o.orderProducts op JOIN FETCH op.productSizeColor psc JOIN FETCH psc.productSize WHERE o.id = :id AND o.user.id = :idUser ")
+        Optional<Order> findByIdAndUserIdFetchOrderProductFetchProductSizeColorFetchProductSize(Long id, String idUser);
+
+        @Query("SELECT o FROM Order o JOIN FETCH o.orderProducts op JOIN FETCH op.productSizeColor psc JOIN FETCH psc.productSize WHERE o.id = :id")
         Optional<Order> findByIdFetchOrderProductFetchProductSizeColorFetchProductSize(Long id);
 
         @Query("SELECT new  com.shop.fashion.dtos.dtosRes.StatisticOrderDTO(" +
@@ -107,4 +117,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                         " years.year;")
 
         List<Object[]> statisticRevennue7LastYears();
+
+        @Query("SELECT o FROM Order o  WHERE o.orderStatus = :status AND o.user.id = :userId")
+        List<Order> findAllByOrderStatusAndUserId(@Param("status") OrderStatus status,
+                        @Param("userId") String userId);
+
+        @Query("SELECT o FROM Order o WHERE o.id = :id AND o.orderStatus <> :status")
+        Optional<Order> findByIdAndOrderStatusNot(@Param("id") Long id, @Param("status") OrderStatus status);
+
+        @Query("SELECT o FROM Order o WHERE o.id = :id  AND o.user.id = :userId")
+        Optional<Order> findByIdAndUserId(@Param("id") Long id, String userId);
+
 }

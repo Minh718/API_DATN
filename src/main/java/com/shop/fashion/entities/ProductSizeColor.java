@@ -35,4 +35,7 @@ public class ProductSizeColor {
     @ManyToOne
     @JoinColumn(name = "color_id")
     private Color color;
+
+    @OneToMany(mappedBy = "productSizeColor", fetch = FetchType.LAZY)
+    private Set<OrderProduct> orderProducts;
 }

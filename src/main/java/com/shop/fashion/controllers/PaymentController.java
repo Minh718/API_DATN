@@ -18,6 +18,7 @@ import com.shop.fashion.services.PaymentService;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.NonFinal;
 
 @RestController
 @RequestMapping("api/payment")
@@ -26,6 +27,7 @@ public class PaymentController {
     private final OrderService orderService;
     private final PaymentService paymentService;
 
+    @NonFinal
     @Value("${frontend_host:http://localhost:3000}")
     private String frontend_host;
 

@@ -22,4 +22,13 @@ public class VoucherResDTO {
     @Enumerated(EnumType.STRING)
     private TypeVoucher type;
     private long discount;
+    private long minPrice;
+    private long maxDiscount;
+    private boolean isActive;
+    private String description;
+    private LocalDate startDate;
+    private boolean forNewUser;
+    private LocalDate endDate;
+    private LocalDate createdAt;
+    private LocalDate updatedAt;
 }
