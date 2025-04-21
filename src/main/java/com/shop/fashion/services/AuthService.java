@@ -209,7 +209,7 @@ public class AuthService {
         return AttachInfoUserWithToken(user);
     }
 
-    private UserInfoToken AttachInfoUserWithToken(User user) {
+    public UserInfoToken AttachInfoUserWithToken(User user) {
         UserInfoToken userInfo = UserMapper.INSTANCE.toUserInfoToken(user);
         userInfo.setAccessToken(jwtService.generateToken(user, user.getKeyToken(), expAccessToken));
         userInfo.setRefreshToken(jwtService.generateToken(user, refreshKey, expRefreshToken));
