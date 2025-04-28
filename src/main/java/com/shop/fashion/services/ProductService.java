@@ -130,8 +130,8 @@ public class ProductService {
         }
         ProductSizeColor productSizeColor = productSizeColorRepository.findById(productSizeColorDTO.getPscId())
                 .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_SIZE_COLOR_NOT_EXISTED));
-        int oldQuantity = (int) redisService.getKey("productSizeColor:" +
-                productSizeColor.getId());
+        Integer redisQuantity = (Integer) redisService.getKey("productSizeColor:" + productSizeColor.getId());
+        int oldQuantity = redisQuantity != null ? redisQuantity : 0;
         int newQuantity = productSizeColorDTO.getQuantity();
         redisService.setKey("productSizeColor:" + productSizeColor.getId(),
                 newQuantity);
@@ -236,7 +236,6 @@ public class ProductService {
         productDetailDTO.getProductSizes().forEach(productSize -> {
             var quantityPZ = redisService.getKey("productSize:" + productSize.getId());
             if (quantityPZ == null) {
-                // will be removed
                 quantityPZ = processing(productSize);
                 redisService.setKey("productSize:" + productSize.getId(), quantityPZ);
             }

@@ -6,6 +6,7 @@ import com.shop.fashion.enums.TypeVoucher;
 import com.shop.fashion.enums.VoucherTargetType;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,6 +18,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class VoucherDTO {
     private String code;
     private TypeVoucher type;

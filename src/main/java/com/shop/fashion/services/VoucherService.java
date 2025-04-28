@@ -105,15 +105,11 @@ public class VoucherService {
     public VoucherResDTO createVoucher(VoucherDTO voucherDTO) {
         Voucher voucher = VoucherMapper.INSTANCE.toVoucher(voucherDTO);
         List<UserVoucher> userVouchers = new ArrayList<>();
-        // voucherRepository.save(voucher);
 
         if (voucherDTO.getTargetUserType() == VoucherTargetType.GLOBAL) {
-            // Retrieve all users
             List<User> allUsers = userRepository.findAll();
 
-            // Create a UserVoucher for each user with the saved voucher
             userVouchers = addVoucherToUsers(voucher, allUsers);
-            // userVoucherService.createUserVouchersForAllUsers(allUsers, voucher);
         } else if (voucherDTO.getTargetUserType() == VoucherTargetType.NEW_USER) {
             voucher.setForNewUser(true);
         } else {
@@ -122,8 +118,6 @@ public class VoucherService {
                     .map(object -> (String) object)
                     .collect(Collectors.toList());
             List<User> users = userRepository.findAllById(idUserLoyers);
-            System.err.println(users.size());
-            System.err.println(idUserLoyers.toString());
             userVouchers = addVoucherToUsers(voucher, users);
         }
         voucher.setUserVouchers(userVouchers);
@@ -136,7 +130,6 @@ public class VoucherService {
         return VoucherMapper.INSTANCE.toVoucherResDTO(res);
     }
 
-    // @Async("ThreadPoolUserVoucher")
     public List<UserVoucher> addVoucherToUsers(Voucher voucher, List<User> users) {
         List<UserVoucher> userVouchers = new ArrayList<>();
         for (User user : users) {

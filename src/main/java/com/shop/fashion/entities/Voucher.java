@@ -15,6 +15,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,6 +25,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Builder
 public class Voucher implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,13 +36,18 @@ public class Voucher implements Serializable {
     private long discount;
     private long minPrice;
     private long maxDiscount;
+    @Builder.Default
     private boolean isActive = true;
     private String description;
     private LocalDate startDate;
+    @Builder.Default
     private boolean forNewUser = false;
     private LocalDate endDate;
+    @Builder.Default
     private LocalDate createdAt = LocalDate.now();
+    @Builder.Default
     private LocalDate updatedAt = LocalDate.now();
     @OneToMany(mappedBy = "voucher", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<UserVoucher> userVouchers = new ArrayList<>();
 }

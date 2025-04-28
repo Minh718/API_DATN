@@ -101,10 +101,11 @@ public class OrderController {
         }
 
         @GetMapping("/cancel/{id}")
-        public ApiRes<Void> userCancelOrder(
+        public ApiRes<OrderResDTO> userCancelOrder(
                         @PathVariable Long id) {
-                orderService.userCancelOrder(id);
-                return ApiRes.<Void>builder().code(1000).message("cancel order success")
+
+                return ApiRes.<OrderResDTO>builder().code(1000).message("cancel order success")
+                                .result(orderService.userCancelOrder(id))
                                 .build();
         }
 

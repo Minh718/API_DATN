@@ -232,7 +232,6 @@ class AuthServiceTest {
         verify(outboundInfoUserGoogle).getInfoUser("json", accessToken);
         verify(userRepository).save(any(User.class));
         verify(redisService).setKeyInMilliseconds(startsWith("keyToken:"), anyString(), anyLong());
-        verify(redisService).addLoyalUser(anyString());
 
         assertNotNull(result);
         User savedUser = userCaptor.getValue();

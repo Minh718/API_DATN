@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.hibernate.Hibernate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -69,9 +71,14 @@ public class OrderService {
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
     private final RecommendProductRepository recommendProductRepository;
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     @Autowired
     @Lazy
     private OrderService self;
+
+    public void setSelf(OrderService self) {
+        this.self = self;
+    }
 
     public Page<OrderResDTO> getOrdersByOrderStatus(int page, int size, OrderStatus orderStatus) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -157,7 +164,7 @@ public class OrderService {
 
         for (ItemCheckoutReq item : order.getCheckoutReq().getItems()) {
             CartProductSizeColor cpsc = cartProductSizeColorRepository.findById(item.getId())
-                    .orElseThrow(() -> new CustomException(ErrorCode.ERROR_SYSTEM));
+                    .orElseThrow(() -> new CustomException(ErrorCode.CART_PRODUCT_SIZE_NOT_EXISTED));
             Long productSizeColorId = cpsc.getProductSizeColorId();
 
             int retries = 10;
@@ -172,7 +179,9 @@ public class OrderService {
                     redisService.deleteKey("lock_" + productSizeColorId);
                     break;
                 } else {
+
                     try {
+
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
@@ -180,7 +189,7 @@ public class OrderService {
                     }
                 }
             }
-
+            log.info("Product locked status: {}", productLocked);
             if (!productLocked) {
                 rollbackProductOrders(productOrders);
                 throw new CustomException(ErrorCode.ERROR_SYSTEM);
@@ -237,7 +246,7 @@ public class OrderService {
         int quantityBuy = cpsc.getQuantity();
         ProductSizeColor productSizeColor = productSizeColorRepository
                 .findByIdFetchProductSizeAndFetchProduct(productSizeColorId)
-                .orElseThrow();
+                .orElseThrow(() -> new CustomException(ErrorCode.BAD_REQUEST));
         Product product = productSizeColor.getProductSize().getProduct();
         idProducts.add(product.getId());
         if (quantityStock >= quantityBuy) {
@@ -251,8 +260,10 @@ public class OrderService {
                     .size(productSizeColor.getProductSize().getSize().getName())
                     .build();
             productOrders.add(orderProduct);
-            redisService.incrementKey("productSizeColor:" + productSizeColor.getId(), -quantityBuy);
-            redisService.incrementKey("productSize:" + productSizeColor.getProductSize().getId(), -quantityBuy);
+            redisService.incrementKey("productSizeColor:" + productSizeColor.getId(),
+                    -quantityBuy);
+            redisService.incrementKey("productSize:" +
+                    productSizeColor.getProductSize().getId(), -quantityBuy);
             cartProductSizeColorRepository.delete(cpsc);
         } else {
             rollbackProductOrders(productOrders);
@@ -368,7 +379,7 @@ public class OrderService {
         self.rollbackOnOrderCancellation(order);
     }
 
-    public void userCancelOrder(Long id) {
+    public OrderResDTO userCancelOrder(Long id) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
 
         Order order = orderRepository.findByIdAndUserId(id, userId)
@@ -383,6 +394,8 @@ public class OrderService {
         orderRepository.save(order);
         Hibernate.initialize(order.getOrderProducts());
         self.rollbackOnOrderCancellation(order);
+        return OrderMapper.INSTANCE.toOrderResDTO(order);
+
     }
 
     public void confirmReceiptOrderSuccessfully(Long id) {
