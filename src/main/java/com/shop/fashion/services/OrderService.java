@@ -22,10 +22,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.shop.fashion.controllers.SocketController;
 import com.shop.fashion.dtos.dtosReq.ItemCheckoutReq;
 import com.shop.fashion.dtos.dtosReq.OrderDTO;
 import com.shop.fashion.dtos.dtosRes.CheckoutRes;
 import com.shop.fashion.dtos.dtosRes.DetailOrderDTO;
+import com.shop.fashion.dtos.dtosRes.OrderNotificationPayload;
 import com.shop.fashion.dtos.dtosRes.OrderResDTO;
 import com.shop.fashion.entities.Cart;
 import com.shop.fashion.entities.CartProductSizeColor;
@@ -64,6 +66,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final VoucherRepository voucherRepository;
     private final UserRepository userRepository;
+    private final SocketController socketController;
     private final CheckoutService checkoutService;
     private final CartProductSizeColorRepository cartProductSizeColorRepository;
     private final ProductSizeColorRepository productSizeColorRepository;
@@ -128,6 +131,18 @@ public class OrderService {
             reOrder.setVoucher(VoucherMapper.INSTANCE.toVoucherResDTO(voucher));
         }
         return reOrder;
+    }
+
+    private void processNotifyOrder(Order order, User user) {
+        String message = String.format(
+                "%s customer has placed an order sucessfully. Thank you for %s' purchase!",
+                order.getFullName(), order.getFullName());
+
+        OrderNotificationPayload payload = new OrderNotificationPayload(
+                user.getPicture(),
+                message);
+
+        socketController.notifyOrderSuccess(payload);
     }
 
     public DetailOrderDTO getDetailOrderAdmin(Long id) {
@@ -202,6 +217,7 @@ public class OrderService {
                 user, payment);
         productOrders.forEach(orderProduct -> orderProduct.setOrder(newOrder));
         newOrder.setOrderProducts(productOrders);
+        processNotifyOrder(newOrder, user);
         if (order.getPaymentMethod() != PaymentMethod.VNPAY) {
             newOrder.setOrderStatus(OrderStatus.CONFIRMED);
         } else {

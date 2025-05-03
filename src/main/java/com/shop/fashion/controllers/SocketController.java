@@ -7,6 +7,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import com.shop.fashion.dtos.dtosReq.MessageDTO;
+import com.shop.fashion.dtos.dtosRes.OrderNotificationPayload;
 
 @Controller
 public class SocketController {
@@ -17,6 +18,10 @@ public class SocketController {
     @MessageMapping("/private")
     public void sendToSpecificUser(@Payload MessageDTO message) {
         simpMessagingTemplate.convertAndSendToUser(message.getTo(), "/specific", message.getText());
+    }
+
+    public void notifyOrderSuccess(OrderNotificationPayload payload) {
+        simpMessagingTemplate.convertAndSend("/topic/order-notification", payload);
     }
 
 }

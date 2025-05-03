@@ -1,6 +1,7 @@
 package com.shop.fashion.dtos.dtosRes;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,4 +19,6 @@ public class OrderProductResDTO {
     private String name;
     private String size;
     private String color;
+    private Integer rating;
+    private Boolean isRating;
 }

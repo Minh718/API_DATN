@@ -6,8 +6,10 @@ import org.mapstruct.factory.Mappers;
 
 import com.shop.fashion.dtos.dtosReq.OrderDTO;
 import com.shop.fashion.dtos.dtosRes.DetailOrderDTO;
+import com.shop.fashion.dtos.dtosRes.OrderProductResDTO;
 import com.shop.fashion.dtos.dtosRes.OrderResDTO;
 import com.shop.fashion.entities.Order;
+import com.shop.fashion.entities.OrderProduct;
 
 @Mapper
 public interface OrderMapper {
@@ -32,4 +34,6 @@ public interface OrderMapper {
     @Mapping(target = "urlPayment", ignore = true)
     @Mapping(target = "user", ignore = true)
     Order toOrder(OrderDTO order);
+
+    OrderProductResDTO toOrderProductResDTO(OrderProduct orderProduct);
 }

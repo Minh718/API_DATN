@@ -1,5 +1,6 @@
 package com.shop.fashion.entities;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -33,6 +34,13 @@ public class OrderProduct {
     private String name;
     private String image;
     private String color;
+    @Column(name = "rating")
+
+    private Integer rating;
+    @Builder.Default
+    @Column(name = "is_rating")
+    private Boolean isRating = false;
+
     private String size;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_size_color_id", referencedColumnName = "id")

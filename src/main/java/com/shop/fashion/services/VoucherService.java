@@ -104,6 +104,7 @@ public class VoucherService {
     @Transactional
     public VoucherResDTO createVoucher(VoucherDTO voucherDTO) {
         Voucher voucher = VoucherMapper.INSTANCE.toVoucher(voucherDTO);
+        voucherRepository.save(voucher);
         List<UserVoucher> userVouchers = new ArrayList<>();
 
         if (voucherDTO.getTargetUserType() == VoucherTargetType.GLOBAL) {
