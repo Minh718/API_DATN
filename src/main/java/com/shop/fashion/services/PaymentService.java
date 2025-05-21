@@ -12,6 +12,8 @@ import com.shop.fashion.exceptions.ErrorCode;
 import com.shop.fashion.repositories.PaymentRepository;
 import com.shop.fashion.utils.VNPayUtil;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Service
@@ -22,25 +24,40 @@ public class PaymentService {
 
     public String createVnPayPayment(HttpServletRequest request, double amount, Long orderInfo) {
         Map<String, String> vnpParamsMap = vnPayConfig.getVNPayConfig();
-        double exchangeRate = 25000d;
-        long vndAmount = Math.round(amount * exchangeRate); // Convert to VND
-        long vnpAmount = vndAmount * 100; // Multiply by 100 as required by VNPAY
-        vnpParamsMap.put("vnp_Amount", String.valueOf(vnpAmount));
-        vnpParamsMap.put("vnp_OrderInfo", Long.toString(orderInfo));
 
-        // if (bankCode != null && !bankCode.isEmpty()) {
-        // vnpParamsMap.put("vnp_BankCode", bankCode);
-        // }
+        double exchangeRate = 25000d;
+        long vndAmount = Math.round(amount * exchangeRate); // USD -> VND
+        long vnpAmount = vndAmount * 100; // Multiply by 100 as VNPAY expects smallest unit
+
+        vnpParamsMap.put("vnp_Amount", String.valueOf(vnpAmount));
+        vnpParamsMap.put("vnp_OrderInfo", String.valueOf(orderInfo));
         vnpParamsMap.put("vnp_IpAddr", VNPayUtil.getIpAddress(request));
 
-        String queryUrl = VNPayUtil.getPaymentURL(vnpParamsMap, true);
-        // String hashData = VNPayUtil.getPaymentURL(vnpParamsMap, false);
-        // String vnpSecureHash = VNPayUtil.hmacSHA512(vnPayConfig.getSecretKey(),
-        // hashData);
-        String vnpSecureHash = getVnpSecureHash(vnpParamsMap);
-        queryUrl += "&vnp_SecureHash=" + vnpSecureHash;
-        String paymentUrl = vnPayConfig.getVnp_PayUrl() + "?" + queryUrl;
-        return paymentUrl;
+        List<String> fieldNames = new ArrayList<>(vnpParamsMap.keySet());
+        Collections.sort(fieldNames);
+
+        StringBuilder hashData = new StringBuilder();
+        StringBuilder queryUrl = new StringBuilder();
+        for (String fieldName : fieldNames) {
+            String fieldValue = vnpParamsMap.get(fieldName);
+            if (fieldValue != null && !fieldValue.isEmpty()) {
+                String encodedName = URLEncoder.encode(fieldName, StandardCharsets.US_ASCII);
+                String encodedValue = URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII);
+                hashData.append(encodedName).append('=').append(encodedValue).append('&');
+                queryUrl.append(encodedName).append('=').append(encodedValue).append('&');
+            }
+        }
+
+        if (hashData.length() > 0)
+            hashData.setLength(hashData.length() - 1);
+        if (queryUrl.length() > 0)
+            queryUrl.setLength(queryUrl.length() - 1);
+
+        String secureHash = VNPayUtil.hmacSHA512(vnPayConfig.getSecretKey(), hashData.toString());
+
+        queryUrl.append("&vnp_SecureHash=").append(secureHash);
+
+        return vnPayConfig.getVnp_PayUrl() + "?" + queryUrl.toString();
     }
 
     public String getVnpSecureHash(Map<String, String> vnpParamsMap) {
