@@ -27,7 +27,8 @@ public class SecurityConfig {
             "/api/payment/vn-pay-callback", "/index-lucene-product",
             "/api/product/public/homepage", "api/slide/all/public",
             "/api/product/public/subCategory",
-            "/images/**"
+            "/images/**",
+            "/index-lucene-product"
     };
     @Autowired
     private CustomJwtDecoder customJwtDecoder;

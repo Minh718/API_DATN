@@ -22,7 +22,10 @@ public class PaymentService {
 
     public String createVnPayPayment(HttpServletRequest request, double amount, Long orderInfo) {
         Map<String, String> vnpParamsMap = vnPayConfig.getVNPayConfig();
-        vnpParamsMap.put("vnp_Amount", String.valueOf(amount * 2500000d));
+        double exchangeRate = 25000d;
+        long vndAmount = Math.round(amount * exchangeRate); // Convert to VND
+        long vnpAmount = vndAmount * 100; // Multiply by 100 as required by VNPAY
+        vnpParamsMap.put("vnp_Amount", String.valueOf(vnpAmount));
         vnpParamsMap.put("vnp_OrderInfo", Long.toString(orderInfo));
 
         // if (bankCode != null && !bankCode.isEmpty()) {

@@ -35,7 +35,8 @@ public class TemplateService {
                 StandardCharsets.UTF_8);
         Map<String, String> valuesMap = Map.of(
                 "Tên người dùng", email,
-                "Tên Công Ty", "Công ty ABC",
+                "Lo go", backendHost + "/images/logo.jpg",
+                "Tên Công Ty", "cửa hàng thời trang",
                 "Link xác nhận", backendHost + "/api/auth/email/confirm?token=" + uuid,
                 "Năm hiện tại", String.valueOf(java.time.Year.now()));
 
